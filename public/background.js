@@ -21,5 +21,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // eslint-disable-next-line no-undef
     chrome.storage.local.set({ answers: request.answers });
   }
+  if (request.type === 'login-success') {
+    console.log('Setting new user value in storage: ', request.user)
+    // eslint-disable-next-line no-undef
+    chrome.storage.local.set({ user: request.user });
+  }
   sendResponse({ farewell: "goodbye" });
 });

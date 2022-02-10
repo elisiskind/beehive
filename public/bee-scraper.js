@@ -12,12 +12,15 @@ const extractTodaysWords = () => {
 const sendCurrentState = () => {
   const currentState = localStorage.getItem("sb-today");
   if (currentState) {
-    // eslint-disable-next-line no-undef
-    chrome.runtime.sendMessage(
-      {
+    const message = {
         words: JSON.parse(currentState).words,
         answers: extractTodaysWords(),
-      },
+      };
+
+    console.log('Sending message: ', message)
+
+    chrome.runtime.sendMessage(
+      message,
       (resp) => {
         console.log(resp);
       }

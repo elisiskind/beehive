@@ -1,8 +1,9 @@
 {
   "name": "Beehive",
   "description": "Play the New York Times Spelling Bee with friends!",
-  "version": "1.0",
+  "version": "0.0.1",
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgZVs39zXnXkcFLzzV9N4Epi3j3OMKJhGJcDSCPgEjRFPdPLT41n2RaENkuQ61VARJ2JzV7OPxwdNNlsvVmE7B6u8Tlf5aooThaWe6WwytceWxwH6mUgDi74qYjU2d+/dBJAj857ZyaKTMijZ0xH0GHdJ2IagbdM71raWrZCAbbqDId6U9ox6d5FF6BWCfe78e2xgIjFeCVN7pw/hnWzoyGxUFPQjlrYPHjeTVmRdv4FNsI97dM6RCXf68y6xL2GZLlT9WhF0xjNPQU6MSWD/7NQmIKdbpLnIwiedpsH53wdtQImyfT5mHjomcYYyVXF1rewlvAnWCQ29NYJvrsmb1wIDAQAB",
   "background": {
     "service_worker": "background.js"
   },
@@ -15,13 +16,26 @@
       "128": "images/icon-128px.png"
     }
   },
-  "permissions": ["tabs", "storage"],
-  "host_permissions": ["*://www.nytimes.com/puzzles/spelling-bee"],
+  "permissions": [
+    "tabs",
+    "storage",
+    "identity"
+  ],
+  "host_permissions": [
+    "*://www.nytimes.com/puzzles/spelling-bee"
+  ],
   "content_scripts": [
     {
-      "matches": ["*://www.nytimes.com/puzzles/spelling-bee"],
-      "js": ["content.js"],
-      "run_at": "document_end"
+      "matches": [
+        "*://www.nytimes.com/puzzles/spelling-bee"
+      ],
+      "js": [
+        "bee-scraper.js"
+      ]
     }
-  ]
+  ],
+  "oauth2": {
+    "client_id": "149062792666-0tkac8f454kpbqgvmblsphsbh8i2u1p4.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/userinfo.email"]
+  }
 }
