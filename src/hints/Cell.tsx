@@ -1,8 +1,6 @@
 import { FunctionComponent } from "react";
 import { createUseStyles } from "react-jss";
 
-export type GridData = { [key: string]: { [key: number]: number } };
-
 const useStyles = createUseStyles({
   root: {
     padding: 4,

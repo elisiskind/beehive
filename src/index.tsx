@@ -3,11 +3,7 @@ import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
-import DataProvider from "./DataProvider";
-
-import firebase  from "firebase/compat/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp } from "firebase/app";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAiscxS1ivbtIs1zSwtawJnYfES2kuEvuc",
@@ -18,14 +14,11 @@ const firebaseConfig = {
   appId: "1:149062792666:web:b7769886dcb9ac44a6bce3",
 };
 
-export const firebaseApp = firebase.initializeApp(firebaseConfig);
-export const firebaseDb = getFirestore(firebaseApp);
-export const firebaseAuth = getAuth(firebaseApp);
+export const firebaseApp = initializeApp(firebaseConfig);
+
 ReactDOM.render(
   <React.StrictMode>
-      <DataProvider>
-        <App />
-      </DataProvider>
+    <App />
   </React.StrictMode>,
   document.getElementById("root")
 );

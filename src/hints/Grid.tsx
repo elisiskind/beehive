@@ -1,11 +1,19 @@
 import { useContext } from "react";
 import { createUseStyles } from "react-jss";
 import { Cell } from "./Cell";
-import { DataContext } from "./DataProvider";
+import { DataContext } from "../storage/DataProvider";
 
 const useStyles = createUseStyles({
   root: {
-    margin: 16,
+    padding: 16,
+    height: 300,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  grid: {
     display: "flex",
     flexDirection: "column",
     gap: 4,
@@ -79,12 +87,14 @@ export const Grid = () => {
 
   return (
     <div className={classes.root}>
-      <div className={classes.row}>
-        <Cell />
-        {header}
+      <div className={classes.grid}>
+        <div className={classes.row}>
+          <Cell />
+          {header}
+        </div>
+        {body}
+        {totalRow}
       </div>
-      {body}
-      {totalRow}
     </div>
   );
 };

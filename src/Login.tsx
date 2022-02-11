@@ -1,7 +1,4 @@
 import { createUseStyles } from "react-jss";
-import "firebase/compat/auth";
-import { useContext } from "react";
-import { DataContext } from "./DataProvider";
 
 const useStyles = createUseStyles({
   root: {
@@ -28,9 +25,12 @@ const useStyles = createUseStyles({
   },
 });
 
-export const Login = () => {
+interface LoginProps {
+  login: () => void;
+}
+
+export const Login = ({login}: LoginProps) => {
   const classes = useStyles();
-  const { login } = useContext(DataContext);
 
   return (
     <div className={classes.root}>
