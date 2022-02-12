@@ -1,7 +1,7 @@
-import { getAuth } from "firebase/auth";
 import React from "react";
 import { createUseStyles } from "react-jss";
-import { User } from "../AuthProvider";
+import { auth } from "..";
+import { User } from "../storage/DataProvider";
 import { Button } from "./Button";
 
 const useStyles = createUseStyles({
@@ -71,9 +71,9 @@ export const NavBar = ({ title, back, user }: NabBarProps) => {
             ) : (
               <></>
             )}
-            <span>{user.name}</span>
+            <span>{user.name ?? user.email}</span>
           </div>
-          <Button onClick={() => getAuth().signOut()}>Sign out</Button>
+          <Button onClick={() => auth.signOut()}>Sign out</Button>
         </>
       )}
     </div>

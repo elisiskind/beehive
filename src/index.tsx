@@ -4,6 +4,8 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAiscxS1ivbtIs1zSwtawJnYfES2kuEvuc",
@@ -15,6 +17,8 @@ const firebaseConfig = {
 };
 
 export const firebaseApp = initializeApp(firebaseConfig);
+export const auth = getAuth();
+export const firestore = getFirestore();
 
 ReactDOM.render(
   <React.StrictMode>

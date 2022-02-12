@@ -1,13 +1,12 @@
 import React, { useContext, useState } from "react";
 import "./App.css";
-import { DataContext } from "./storage/DataProvider";
+import DataProvider, { DataContext } from "./storage/DataProvider";
 import { createUseStyles } from "react-jss";
 import { Button } from "./components/Button";
 import { Slide } from "./components/Slide";
 import { Grid } from "./hints/Grid";
 import { Friends } from "./friends/Friends";
 import { NavBar } from "./components/NavBar";
-import { AuthProvider } from "./AuthProvider";
 
 type Tab = "Hints" | "Friends" | "none";
 
@@ -30,10 +29,12 @@ const useStyles = createUseStyles({
 });
 
 const App = () => {
-  return <AuthProvider>
-    <Content/>
-  </AuthProvider>
-}
+  return (
+    <DataProvider>
+      <Content />
+    </DataProvider>
+  );
+};
 
 const Content = () => {
   const classes = useStyles();

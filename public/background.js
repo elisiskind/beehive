@@ -4,27 +4,18 @@ chrome.runtime.onInstalled.addListener(function () {
     const enabled =
       tab.url.indexOf("https://www.nytimes.com/puzzles/spelling-bee") !== -1;
     enabled
-      ? chrome.action.enable(tab.tabId)
-      : chrome.action.disable(tab.tabId);
-    console.log('Enabled: ' + enabled)
+      ? await chrome.action.enable(info.tabId)
+      : await chrome.action.disable(info.tabId);
+    console.log("Enabled: " + enabled);
   });
 });
 
-// eslint-disable-next-line no-undef
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (request) => {
   console.log(request);
-  if (request.words) {
-    // eslint-disable-next-line no-undef
-    chrome.storage.local.set({ guesses: request.words });
+  if (request.guesses) {
+    await chrome.storage.local.set({ guesses: request.guesses });
   }
   if (request.answers) {
-    // eslint-disable-next-line no-undef
-    chrome.storage.local.set({ answers: request.answers });
+    await chrome.storage.local.set({ answers: request.answers });
   }
-  if (request.type === 'login-success') {
-    console.log('Setting new user value in storage: ', request.user)
-    // eslint-disable-next-line no-undef
-    chrome.storage.local.set({ user: request.user });
-  }
-  sendResponse({ farewell: "goodbye" });
 });

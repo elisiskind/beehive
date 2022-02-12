@@ -1,42 +1,51 @@
-const extractTodaysWords = () => {
+const extractAnswers = () => {
   const prefix = "window.gameData = ";
   const scripts = document.getElementsByTagName("script");
   for (let i = 0; i < scripts.length; i++) {
     const content = scripts[i].textContent;
     if (content.indexOf(prefix) !== -1) {
-      return JSON.parse(content.substr(prefix.length))?.today?.answers;
+      const today = JSON.parse(content.substr(prefix.length))?.today;
+      return {
+        words: today?.answers,
+        expiration: today?.expiration
+      }
     }
   }
 };
 
-const sendCurrentState = () => {
+const sendGuesses = () => {
   const currentState = localStorage.getItem("sb-today");
   if (currentState) {
-    const message = {
-        words: JSON.parse(currentState).words,
-        answers: extractTodaysWords(),
-      };
-
-    console.log('Sending message: ', message)
-
-    chrome.runtime.sendMessage(
-      message,
-      (resp) => {
-        console.log(resp);
-      }
-    );
+    chrome.runtime.sendMessage({
+      guesses: JSON.parse(currentState).words,
+    });
   }
 };
 
-const sendWithDelay = () => setTimeout(() => sendCurrentState(), 100);
-sendWithDelay();
-
-window.onkeyup = (e) => {
-  if (e.key === "Enter") {
-    sendWithDelay();
-  }
+const listenForRequests = () => {
+  console.log('listening for requests!')
+  chrome.runtime.onMessage.addListener((message) => {
+    console.log('Message! ', message)
+    if (message.type === "answers-request") {
+      const message = { answers: extractAnswers() };
+    console.log('Answers request! Responding with: ', message)
+      chrome.runtime.sendMessage(message);
+      sendGuesses();
+    }
+  });
 };
 
-document.getElementsByClassName("hive-action__submit")[0].onclick = () => {
-  sendWithDelay();
-};
+const listenForUserInput = () => {
+  window.onkeyup = (e) => {
+    if (e.key === "Enter") {
+      setTimeout(() => sendGuesses(), 100);
+    }
+  };
+
+  document.getElementsByClassName("hive-action__submit")[0].onclick = () => {
+    setTimeout(() => sendGuesses(), 100);
+  };
+}
+
+listenForUserInput();
+listenForRequests();
