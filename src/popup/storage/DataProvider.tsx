@@ -5,12 +5,12 @@ import React, {
   useState,
 } from "react";
 import { generateGridMap, GridData } from "./grid";
-import { getStorage, listenForUpdates, requestAnswers } from "./local";
 import { Spinner } from "../components/spinner";
 import { createUseStyles } from "react-jss";
 import { Login } from "../Login";
-import { listenForAuthUpdates, loginWithFirebase } from "../auth/auth";
-import { saveGuesses } from "./firestore";
+import { GameInfo, User } from "../../lib/interfaces";
+import { LoginRequestMessage, Messages } from "../../lib/messaging";
+import { ChromeStorage } from "../../lib/storage";
 
 const useStyles = createUseStyles({
   rootLoading: {
@@ -31,25 +31,11 @@ const useStyles = createUseStyles({
   },
 });
 
-export interface User {
-  id: string;
-  name: string | null;
-  photo: string | null;
-  email: string | null;
-  friends: string[];
-  guesses: string[];
-}
-
 export interface Data {
-  grid: GridData | undefined;
-  answers: string[];
+  grid: GridData | null;
+  gameInfo: GameInfo;
   guesses: string[];
   user: User;
-}
-
-export interface Answers {
-  words: string[];
-  expiration: number;
 }
 
 export const DataContext = createContext<Data>({} as Data);
@@ -58,50 +44,26 @@ export const DataProvider: FunctionComponent = ({ children }) => {
   const classes = useStyles();
 
   const [loading, setLoading] = useState<boolean>(true);
-  const [answers, setAnswers] = useState<Answers | null>(null);
-  const [guesses, setGuesses] = useState<string[]>([]);
+  const [gameInfo, setGameInfo] = useState<GameInfo | null>(null);
   const [user, setUser] = useState<User | null>(null);
 
   const login = async () => {
-    console.log("Starting login");
     setLoading(true);
-    await loginWithFirebase();
+    Messages.send(new LoginRequestMessage());
   };
 
   // Initialize values in local storage and listen for updates
   useEffect(() => {
-    if (user) {
-      getStorage("answers").then((answers) => {
-        if (!answers || answers.expiration * 1000 < new Date().getTime()) {
-          requestAnswers();
-        } else {
-          setAnswers(answers);
-          getStorage("guesses").then((guesses) => {
-            if (guesses) {
-              setGuesses(guesses);
-              saveGuesses(user?.id, guesses)
-            }
-          });
-        }
-      });
-      return listenForUpdates({
-        guesses: (guesses) => {
-          if (guesses) {
-            setGuesses(guesses);
-            saveGuesses(user?.id, guesses)
-          }
-        },
-        answers: setAnswers,
-      });
-    }
-  }, [user]);
 
-  useEffect(() => {
-    listenForAuthUpdates((user) => {
-      setLoading(false);
-      setUser(user);
-    });
+    Promise.all([
+      ChromeStorage.get("user").then(setUser),
+      ChromeStorage.get("game-info").then(setGameInfo),
+    ]).then(() => setLoading(false));
+
+    ChromeStorage.listen("user", setUser);
+    ChromeStorage.listen("game-info", setGameInfo);
   }, []);
+
 
   if (!user && !loading) {
     return (
@@ -111,7 +73,7 @@ export const DataProvider: FunctionComponent = ({ children }) => {
     );
   }
 
-  if (!answers || loading || !user) {
+  if (!gameInfo || loading || !user) {
     return (
       <div className={classes.rootLoading}>
         <Spinner />
@@ -119,11 +81,15 @@ export const DataProvider: FunctionComponent = ({ children }) => {
     );
   }
 
-  const grid = generateGridMap(answers.words, guesses);
+  const now = new Date().getTime();
+  const answers = (gameInfo.expiration * 1000) > now ? gameInfo.answers : null;
+
+  const guesses = user.guesses.expiration * 1000 > now ? user.guesses.guesses : [];
+    const grid = answers  ? generateGridMap(answers, guesses) : null;
 
   return (
     <DataContext.Provider
-      value={{ grid, answers: answers.words, guesses, user }}
+      value={{ grid, gameInfo, guesses, user }}
     >
       {children}
     </DataContext.Provider>

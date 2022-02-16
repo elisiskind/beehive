@@ -1,8 +1,8 @@
 import React from "react";
 import { createUseStyles } from "react-jss";
-import { auth } from "..";
-import { User } from "../storage/DataProvider";
+import { User } from "../../lib/interfaces";
 import { Button } from "./Button";
+import { LogoutRequestMessage, Messages } from "../../lib/messaging";
 
 const useStyles = createUseStyles({
   infoBar: {
@@ -73,7 +73,7 @@ export const NavBar = ({ title, back, user }: NabBarProps) => {
             )}
             <span>{user.name ?? user.email}</span>
           </div>
-          <Button onClick={() => auth.signOut()}>Sign out</Button>
+          <Button onClick={() => Messages.send(new LogoutRequestMessage())}>Sign out</Button>
         </>
       )}
     </div>

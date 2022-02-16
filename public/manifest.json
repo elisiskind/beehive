@@ -30,7 +30,7 @@
         "*://www.nytimes.com/puzzles/spelling-bee"
       ],
       "js": [
-        "bee-scraper.js"
+        "content.js"
       ]
     }
   ],
