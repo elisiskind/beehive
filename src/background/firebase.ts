@@ -9,6 +9,8 @@ import { FirebaseApp as FirebaseAppInternal, initializeApp } from "firebase/app"
 import { getFirestore } from "firebase/firestore";
 import { User } from "../lib/interfaces";
 import { Firestore } from "./firestore";
+import { Logging } from "../lib/logging";
+import { ChromeStorage } from "../lib/storage";
 
 export class FirebaseApp {
   readonly app: FirebaseAppInternal;
@@ -35,7 +37,7 @@ export class FirebaseApp {
 
   login = () => {
     return new Promise<void>((resolve, reject) => {
-      console.log('Logging in!')
+      Logging.info('Logging in!')
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         const credential = GoogleAuthProvider.credential(null, token);
         signInWithCredential(this.auth(), credential)
@@ -56,13 +58,18 @@ export class FirebaseApp {
     });
   };
 
+  logout = async () => {
+    Logging.info('Signed out!')
+    await this.auth().signOut();
+  }
+
   listenForAuthUpdates = (setUser: (user: User | null) => void) => {
     onAuthStateChanged(this.auth(), async (firebaseUser) => {
-      console.log("Auth changed", firebaseUser);
+      Logging.info("Auth changed", firebaseUser);
       if (firebaseUser?.uid) {
         let user = await this._firestore.retrieveUser(firebaseUser?.uid);
         if (!user) {
-          user = extractUser(firebaseUser);
+          user = await extractUser(firebaseUser);
           await this._firestore.saveUser(user);
         }
         setUser(user);
@@ -73,16 +80,13 @@ export class FirebaseApp {
   };
 }
 
-const extractUser = (firebaseUser: FirebaseUser): User => {
+const extractUser = async (firebaseUser: FirebaseUser): Promise<User> => {
   return {
     name: firebaseUser.displayName,
     photo: firebaseUser.photoURL,
     id: firebaseUser.uid,
     email: firebaseUser.email,
     friends: [],
-    guesses: {
-      guesses: [],
-      expiration: 0,
-    },
+    guesses: await ChromeStorage.get('guesses') ?? [],
   };
 };

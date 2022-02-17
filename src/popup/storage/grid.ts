@@ -1,3 +1,5 @@
+import { Logging } from "../../lib/logging";
+
 export type GridData = { [key: string]: { [key: number]: number } };
 
 export const generateGridMap = (answers: string[], guesses: string[]): GridData => {
@@ -20,7 +22,7 @@ export const generateGridMap = (answers: string[], guesses: string[]): GridData 
     });
     return grid;
   } catch (e) {
-    console.error("Failed to generate grid", e);
+    Logging.error("Failed to generate grid", e);
     return {};
   }
 };

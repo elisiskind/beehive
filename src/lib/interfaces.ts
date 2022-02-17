@@ -11,18 +11,13 @@ export interface GameInfo {
   validLetters: string[];
 }
 
-export interface Guesses {
-  guesses: string[],
-  expiration: number
-}
-
 export interface User {
   id: string;
   name: string | null;
   photo: string | null;
   email: string | null;
   friends: string[];
-  guesses: Guesses;
+  guesses: string[];
   friendCode?: {
     code: string;
     expiration: number;

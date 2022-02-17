@@ -9,7 +9,11 @@ import { Spinner } from "../components/spinner";
 import { createUseStyles } from "react-jss";
 import { Login } from "../Login";
 import { GameInfo, User } from "../../lib/interfaces";
-import { LoginRequestMessage, Messages } from "../../lib/messaging";
+import {
+  GameInfoRequestMessage,
+  LoginRequestMessage,
+  Messages,
+} from "../../lib/messaging";
 import { ChromeStorage } from "../../lib/storage";
 
 const useStyles = createUseStyles({
@@ -43,29 +47,43 @@ export const DataContext = createContext<Data>({} as Data);
 export const DataProvider: FunctionComponent = ({ children }) => {
   const classes = useStyles();
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const [dataLoading, setDataLoading] = useState<boolean>(true);
+  const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [gameInfo, setGameInfo] = useState<GameInfo | null>(null);
+  const [guesses, setGuesses] = useState<string[]>([]);
   const [user, setUser] = useState<User | null>(null);
 
   const login = async () => {
-    setLoading(true);
+    setAuthLoading(true);
     Messages.send(new LoginRequestMessage());
   };
 
   // Initialize values in local storage and listen for updates
   useEffect(() => {
-
+    ChromeStorage.listen("user", (user) => {
+      if (user) {
+        setAuthLoading(false);
+      }
+      setUser(user);
+    });
+    ChromeStorage.listen("game-info", setGameInfo);
     Promise.all([
       ChromeStorage.get("user").then(setUser),
-      ChromeStorage.get("game-info").then(setGameInfo),
-    ]).then(() => setLoading(false));
-
-    ChromeStorage.listen("user", setUser);
-    ChromeStorage.listen("game-info", setGameInfo);
+      ChromeStorage.get("guesses").then((guesses) => setGuesses(guesses ?? [])),
+      ChromeStorage.get("game-info").then((gameInfo) => {
+        if (gameInfo) {
+          setGameInfo(gameInfo);
+        } else {
+          Messages.send(
+            new GameInfoRequestMessage(),
+            "nytimes.com/puzzles/spelling-bee"
+          );
+        }
+      }),
+    ]).then(() => setDataLoading(false));
   }, []);
 
-
-  if (!user && !loading) {
+  if (!user && !authLoading) {
     return (
       <div className={classes.root}>
         <Login login={login} />
@@ -73,7 +91,7 @@ export const DataProvider: FunctionComponent = ({ children }) => {
     );
   }
 
-  if (!gameInfo || loading || !user) {
+  if (!gameInfo || dataLoading || authLoading || !user) {
     return (
       <div className={classes.rootLoading}>
         <Spinner />
@@ -82,15 +100,11 @@ export const DataProvider: FunctionComponent = ({ children }) => {
   }
 
   const now = new Date().getTime();
-  const answers = (gameInfo.expiration * 1000) > now ? gameInfo.answers : null;
-
-  const guesses = user.guesses.expiration * 1000 > now ? user.guesses.guesses : [];
-    const grid = answers  ? generateGridMap(answers, guesses) : null;
+  const answers = gameInfo.expiration * 1000 > now ? gameInfo.answers : null;
+  const grid = answers ? generateGridMap(answers, guesses) : null;
 
   return (
-    <DataContext.Provider
-      value={{ grid, gameInfo, guesses, user }}
-    >
+    <DataContext.Provider value={{ grid, gameInfo, guesses, user }}>
       {children}
     </DataContext.Provider>
   );

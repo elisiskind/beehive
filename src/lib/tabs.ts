@@ -1,3 +1,5 @@
+import { Logging } from "./logging";
+
 export class Tabs {
   static onTab = (
     urls: string[],
@@ -6,21 +8,23 @@ export class Tabs {
   ) => {
     chrome.tabs.onActivated.addListener(async (info) => {
       const tab = await chrome.tabs.get(info.tabId);
-      urls.forEach((url) => {
+      for (let url of urls) {
         if (tab.url?.indexOf(url) !== -1) {
           callback(info.tabId);
           return;
         }
-      });
+      }
       otherwise?.(info.tabId);
     });
   };
 
   static enableExtension = async (tabId: number) => {
+    Logging.info("Enabling");
     await chrome.action.enable(tabId);
   };
 
   static disableExtension = async (tabId: number) => {
+    Logging.info("Disabling");
     await chrome.action.disable(tabId);
   };
 }

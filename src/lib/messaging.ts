@@ -1,4 +1,5 @@
-import { GameInfo, Guesses, User } from "./interfaces";
+import { GameInfo, User } from "./interfaces";
+import { Logging } from "./logging";
 
 export type MessageType =
   | "game-info-request"
@@ -14,55 +15,55 @@ interface Message {
 }
 
 export class GameInfoRequestMessage implements Message {
-  readonly type: MessageType = 'game-info-request'
+  readonly type: MessageType = "game-info-request";
 }
 
 export class GameInfoResponseMessage implements Message {
-    readonly type: MessageType = 'game-info-response'
+  readonly type: MessageType = "game-info-response";
 
   readonly gameInfo: GameInfo;
 
   constructor(gameInfo: GameInfo) {
-        this.gameInfo = gameInfo;
+    this.gameInfo = gameInfo;
   }
 }
 
 export class LoginRequestMessage implements Message {
-    readonly type: MessageType = 'login-request'
+  readonly type: MessageType = "login-request";
 }
 
 export class LoginSuccessMessage implements Message {
-    readonly type: MessageType = 'login-success'
+  readonly type: MessageType = "login-success";
 
   readonly user: User;
 
   constructor(user: User) {
-        this.user = user;
+    this.user = user;
   }
 }
 
 export class LoginFailedMessage implements Message {
-    readonly type: MessageType = 'login-failed'
+  readonly type: MessageType = "login-failed";
 
   readonly error: any;
 
   constructor(error: any) {
-        this.error = error;
+    this.error = error;
   }
 }
 
 export class GuessesResponseMessage implements Message {
-    readonly type: MessageType = 'guesses-response'
+  readonly type: MessageType = "guesses-response";
 
-  readonly guesses: Guesses;
+  readonly guesses: string[];
 
-  constructor(guesses: Guesses) {
-        this.guesses = guesses;
+  constructor(guesses: string[]) {
+    this.guesses = guesses;
   }
 }
 
 export class LogoutRequestMessage implements Message {
-    readonly type: MessageType = 'logout-request'
+  readonly type: MessageType = "logout-request";
 }
 
 export class Messages {
@@ -80,7 +81,11 @@ export class Messages {
   };
 
   static listen = (onMessage: (message: Message) => void) => {
-    chrome.runtime.onMessage.addListener(onMessage);
+    const wrapped = (message: Message, sender: chrome.runtime.MessageSender) => {
+      Logging.info('Received message from sender', message, sender.id)
+      onMessage(message);
+    }
+    chrome.runtime.onMessage.addListener(wrapped);
   };
 
   static isGameInfoRequest = (
@@ -117,7 +122,9 @@ export class Messages {
     return message.type === "login-failed";
   };
 
-  static isLogoutRequest = (message: Message): message is LogoutRequestMessage => {
-    return message.type === 'logout-request';
-  }
+  static isLogoutRequest = (
+    message: Message
+  ): message is LogoutRequestMessage => {
+    return message.type === "logout-request";
+  };
 }
