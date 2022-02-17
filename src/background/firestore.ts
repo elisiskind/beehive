@@ -4,6 +4,7 @@ import {
   Firestore as FirestoreInternal,
   getDoc,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { User } from "../lib/interfaces";
 
@@ -25,6 +26,10 @@ export class Firestore {
       throw new Error("User must have id. User: " + user);
     }
   };
+
+  updateGuesses = async (userId: string, guesses: string[]) => {
+    await updateDoc(doc(this._users(), userId), {guesses})
+  }
 
   retrieveUser = async (userId: string): Promise<User | null> => {
     return ((await getDoc(doc(this._users(), userId))).data() ??

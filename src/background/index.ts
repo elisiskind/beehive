@@ -3,7 +3,6 @@ import { ChromeStorage } from "../lib/storage";
 import { Tabs } from "../lib/tabs";
 import { FirebaseApp } from "./firebase";
 import { User } from "../lib/interfaces";
-import { Logging } from "../lib/logging";
 
 Tabs.onTab(
   ["nytimes.com/puzzles/spelling-bee"],
@@ -15,14 +14,12 @@ const firebaseApp = new FirebaseApp();
 const firestore = firebaseApp.getFirestore();
 
 firebaseApp.listenForAuthUpdates((user) => {
-  Logging.info("Auth update!");
-  ChromeStorage.get("guesses").then((guesses) => {
-    if (user) {
-      ChromeStorage.set("user", { ...user, ...(guesses ? { guesses } : {}) });
-    } else {
-      ChromeStorage.set("user", null);
-    }
-  });
+  ChromeStorage.set("user", user);
+  if (user) {
+    ChromeStorage.get("guesses").then((guesses) => {
+      firestore.updateGuesses(user.id, guesses ?? []);
+    });
+  }
 });
 
 Messages.listen(async (message) => {
@@ -37,14 +34,7 @@ Messages.listen(async (message) => {
     await ChromeStorage.set("guesses", message.guesses);
     const user: User | null = await ChromeStorage.get("user");
     if (user) {
-      const userWithUpdates = message.guesses
-        ? {
-            ...user,
-            ...{ guesses: message.guesses },
-          }
-        : user;
-      await ChromeStorage.set("user", userWithUpdates);
-      await firestore.saveUser(userWithUpdates);
+      await firestore.updateGuesses(user.id, message.guesses);
     }
   }
   if (Messages.isGameInfoResponse(message)) {
