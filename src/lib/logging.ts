@@ -4,7 +4,7 @@ export class Logging {
   };
 
   static error = (msg: any, ...more: any[]) => {
-    Logging.error(this._timestamp(), msg, ...more);
+    console.error(this._timestamp(), msg, ...more);
   };
 
   static warn = (msg: any, ...more: any[]) => {

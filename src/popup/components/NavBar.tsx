@@ -62,18 +62,19 @@ export const NavBar = ({ title, back, user }: NabBarProps) => {
       ) : (
         <>
           <div className={classes.userDetails}>
-            {user.photo ? (
-              <img
-                className={classes.profileImage}
-                src={user.photo}
-                alt={"profile"}
-              />
-            ) : (
-              <></>
-            )}
+            <img
+              className={classes.profileImage}
+              src={
+                user.photo ??
+                "https://lh3.googleusercontent.com/pw/AM-JKLUfpoZSOE0mrMYpnEOaG_zlGQOwyPnheqPbUEBC7URlVTPd-0k7UKkxN0-ssDfR8omPLt2xrqx3qJgQQ5rzySrCtNPRxs1lWhU0L3bb9Znu2t9ycLWgt382zJ17vjR8m2hf4Rj5Wzdm9E-c-D8zP3316A=w990-h934-no?authuser=0"
+              }
+              alt={"profile"}
+            />
             <span>{user.name ?? user.email}</span>
           </div>
-          <Button onClick={() => Messages.send(new LogoutRequestMessage())}>Sign out</Button>
+          <Button onClick={() => Messages.send(new LogoutRequestMessage())}>
+            Sign out
+          </Button>
         </>
       )}
     </div>

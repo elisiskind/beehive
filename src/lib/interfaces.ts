@@ -1,3 +1,5 @@
+export type Levels = [string, number][];
+
 export interface GameInfo {
   answers: string[];
   centerLetter: string;
@@ -17,9 +19,22 @@ export interface User {
   photo: string | null;
   email: string | null;
   friends: string[];
-  guesses: string[];
   friendCode?: {
     code: string;
     expiration: number;
+  },
+  guesses: {
+    [gameId: number]: string[];
   }
+}
+
+export interface Guesses {
+  id: number;
+  words: string[];
+}
+
+export interface FriendCode {
+  code: string;
+  userId: string;
+  expiration: number;
 }

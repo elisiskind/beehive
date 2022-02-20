@@ -3,39 +3,63 @@ import { createUseStyles } from "react-jss";
 
 interface ButtonProps {
   onClick: () => void;
-  size?: 'small' | 'large'
+  size?: "small" | "large" | "medium";
+  className?: string;
+  disabled?: boolean;
 }
 
 interface StyleProps {
-  size: 'small' | 'large'
+  size: "small" | "large" | "medium";
+  disabled: boolean;
 }
 
 const useStyles = createUseStyles({
   root: {
-    background: "#f7da21",
+    background: ({ disabled }: StyleProps) =>
+      disabled ? "#EEEEEE" : "#f7da21",
     outline: "none",
     border: "none",
-    cursor: "pointer",
-    padding: ({size}: StyleProps) => size === 'large' ? '16px 24px' : '4px 12px',
+    cursor: ({ disabled }: StyleProps) =>
+      disabled ? "default" : "pointer",
+    padding: ({ size }: StyleProps) =>
+      size === "large"
+        ? "16px 24px"
+        : size === "medium"
+        ? "8px 16px"
+        : "4px 12px",
     borderRadius: 8,
-    fontSize: ({size}: StyleProps) => size === 'large' ? 24 : 12,
+    fontSize: ({ size }: StyleProps) =>
+      size === "large" ? 24 : size === "medium" ? 18 : 12,
 
     "&:hover": {
-      background: "#e7ca11",
+      background: ({ disabled }: StyleProps) =>
+        disabled ? "#EEEEEE" : "#e7ca11",
     },
     "&:active": {
-      background: "#d7ba01",
+      background: ({ disabled }: StyleProps) =>
+        disabled ? "#EEEEEE" : "#d7ba01",
     },
-  }
+  },
 });
 
 export const Button: FunctionComponent<ButtonProps> = ({
   children,
   onClick,
-  size
+  className,
+  disabled,
+  size,
 }) => {
-  const classes = useStyles({size: size ?? 'small'});
-  return <button className={classes.root} onClick={onClick}>
-    {children}
-  </button>;
+  const classes = useStyles({
+    size: size ?? "small",
+    disabled: disabled ?? false,
+  });
+  return (
+    <button
+      className={`${classes.root} ${className ? className : ""}`}
+      disabled={disabled ?? false}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
 };

@@ -1,22 +1,36 @@
 import StorageChange = chrome.storage.StorageChange;
-import { GameInfo, User } from "./interfaces";
+import { FriendCode, GameInfo, Guesses, User } from "./interfaces";
 import { Logging } from "./logging";
 
-type StorageKey = "user" | "game-info" | "guesses";
+type StorageKey =
+  | "user"
+  | "game-info"
+  | "guesses"
+  | "friend-code"
+  | "friends"
+  | "friend-requests";
 
-type StorageType<K extends StorageKey> =
-  K extends "user" ? User :
-  K extends "game-info" ? GameInfo :
-  K extends "guesses" ? string[] :
-    never;
+type StorageType<K extends StorageKey> = K extends "user"
+  ? User
+  : K extends "game-info"
+  ? GameInfo
+  : K extends "guesses"
+  ? Guesses
+  : K extends "friend-code"
+  ? FriendCode
+  : K extends "friend-requests"
+  ? User[]
+  : K extends "friends"
+  ? User[]
+  : never;
 
 export class ChromeStorage {
   static async set<K extends StorageKey>(
     key: K,
     value: null | StorageType<K>
   ): Promise<void> {
-    const payload = { [key]: value }
-    Logging.info('Setting storage: ', payload)
+    const payload = { [key]: value };
+    Logging.info("Setting storage: ", payload);
     await chrome.storage.sync.set(payload);
   }
 

@@ -5,12 +5,14 @@ import {
   signInWithCredential,
   User as FirebaseUser,
 } from "firebase/auth";
-import { FirebaseApp as FirebaseAppInternal, initializeApp } from "firebase/app";
+import {
+  FirebaseApp as FirebaseAppInternal,
+  initializeApp,
+} from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { User } from "../lib/interfaces";
 import { Firestore } from "./firestore";
 import { Logging } from "../lib/logging";
-import { ChromeStorage } from "../lib/storage";
 
 export class FirebaseApp {
   readonly app: FirebaseAppInternal;
@@ -37,7 +39,7 @@ export class FirebaseApp {
 
   login = () => {
     return new Promise<void>((resolve, reject) => {
-      Logging.info('Logging in!')
+      Logging.info("Logging in!");
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         const credential = GoogleAuthProvider.credential(null, token);
         signInWithCredential(this.auth(), credential)
@@ -59,18 +61,23 @@ export class FirebaseApp {
   };
 
   logout = async () => {
-    Logging.info('Signed out!')
+    Logging.info("Signed out!");
     await this.auth().signOut();
-  }
+  };
 
-  listenForAuthUpdates = (setUser: (user: User | null) => void) => {
+  listenForAuthUpdates = (
+    setUser: (user: User | null) => void,
+    createUser: (firebaseUser: FirebaseUser) => Promise<User>
+  ) => {
     onAuthStateChanged(this.auth(), async (firebaseUser) => {
       Logging.info("Auth changed", firebaseUser);
       if (firebaseUser?.uid) {
         let user = await this._firestore.retrieveUser(firebaseUser?.uid);
         if (!user) {
-          user = await extractUser(firebaseUser);
+          user = await createUser(firebaseUser);
           await this._firestore.saveUser(user);
+        } else if(!user.name && firebaseUser.displayName) {
+          await this._firestore.updateUserName(user.id, firebaseUser.displayName)
         }
         setUser(user);
       } else {
@@ -79,14 +86,3 @@ export class FirebaseApp {
     });
   };
 }
-
-const extractUser = async (firebaseUser: FirebaseUser): Promise<User> => {
-  return {
-    name: firebaseUser.displayName,
-    photo: firebaseUser.photoURL,
-    id: firebaseUser.uid,
-    email: firebaseUser.email,
-    friends: [],
-    guesses: await ChromeStorage.get('guesses') ?? [],
-  };
-};

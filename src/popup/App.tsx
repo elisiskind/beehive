@@ -1,5 +1,4 @@
 import React, { useContext, useState } from "react";
-import "./App.css";
 import DataProvider, { DataContext } from "./storage/DataProvider";
 import { createUseStyles } from "react-jss";
 import { Button } from "./components/Button";

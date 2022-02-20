@@ -8,13 +8,14 @@ import { generateGridMap, GridData } from "./grid";
 import { Spinner } from "../components/spinner";
 import { createUseStyles } from "react-jss";
 import { Login } from "../Login";
-import { GameInfo, User } from "../../lib/interfaces";
+import { FriendCode, GameInfo, Guesses, User } from "../../lib/interfaces";
 import {
   GameInfoRequestMessage,
   LoginRequestMessage,
   Messages,
 } from "../../lib/messaging";
 import { ChromeStorage } from "../../lib/storage";
+import { isExpired } from "../../lib/utils";
 
 const useStyles = createUseStyles({
   rootLoading: {
@@ -40,6 +41,9 @@ export interface Data {
   gameInfo: GameInfo;
   guesses: string[];
   user: User;
+  friendCode: FriendCode | null;
+  friends: User[];
+  friendRequests: User[];
 }
 
 export const DataContext = createContext<Data>({} as Data);
@@ -50,8 +54,11 @@ export const DataProvider: FunctionComponent = ({ children }) => {
   const [dataLoading, setDataLoading] = useState<boolean>(true);
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [gameInfo, setGameInfo] = useState<GameInfo | null>(null);
-  const [guesses, setGuesses] = useState<string[]>([]);
+  const [friendCode, setFriendCode] = useState<FriendCode | null>(null);
+  const [guesses, setGuesses] = useState<Guesses | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [friends, setFriends] = useState<User[] | null>(null);
+  const [friendRequests, setFriendRequests] = useState<User[] | null>(null);
 
   const login = async () => {
     setAuthLoading(true);
@@ -67,11 +74,19 @@ export const DataProvider: FunctionComponent = ({ children }) => {
       setUser(user);
     });
     ChromeStorage.listen("game-info", setGameInfo);
+    ChromeStorage.listen("friend-code", setFriendCode);
+    ChromeStorage.listen("guesses", setGuesses);
+    ChromeStorage.listen("friends", setFriends);
+    ChromeStorage.listen("friend-requests", setFriendRequests);
+
     Promise.all([
       ChromeStorage.get("user").then(setUser),
-      ChromeStorage.get("guesses").then((guesses) => setGuesses(guesses ?? [])),
+      ChromeStorage.get("guesses").then(setGuesses),
+      ChromeStorage.get("friend-code").then(setFriendCode),
+      ChromeStorage.get("friends").then(setFriends),
+      ChromeStorage.get("friend-requests").then(setFriendRequests),
       ChromeStorage.get("game-info").then((gameInfo) => {
-        if (gameInfo) {
+        if (gameInfo && !isExpired(gameInfo)) {
           setGameInfo(gameInfo);
         } else {
           Messages.send(
@@ -99,12 +114,28 @@ export const DataProvider: FunctionComponent = ({ children }) => {
     );
   }
 
-  const now = new Date().getTime();
-  const answers = gameInfo.expiration * 1000 > now ? gameInfo.answers : null;
-  const grid = answers ? generateGridMap(answers, guesses) : null;
+  const generateGrid = () => {
+    if (isExpired(gameInfo)) {
+      return null;
+    } else if (!guesses || guesses.id !== gameInfo.id) {
+      return generateGridMap(gameInfo.answers, []);
+    } else {
+      return generateGridMap(gameInfo.answers, guesses.words);
+    }
+  };
 
   return (
-    <DataContext.Provider value={{ grid, gameInfo, guesses, user }}>
+    <DataContext.Provider
+      value={{
+        grid: generateGrid(),
+        gameInfo,
+        guesses: guesses?.id === gameInfo.id ? guesses.words : [],
+        user,
+        friendCode,
+        friends: friends ?? [],
+        friendRequests: friendRequests ?? [],
+      }}
+    >
       {children}
     </DataContext.Provider>
   );
