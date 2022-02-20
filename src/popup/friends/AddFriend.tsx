@@ -9,50 +9,9 @@ import {
   Messages,
 } from "../../lib/messaging";
 import { Spinner } from "../components/spinner";
+import { Modal } from "../components/Modal";
 
 const useStyles = createUseStyles({
-  root: {
-    position: "fixed",
-    width: 360,
-    height: "100%",
-    top: 0,
-    zIndex: 99,
-    background: "rgba(0,0,0,0.5)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modal: {
-    width: "80%",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    background: "white",
-    borderRadius: 4,
-    boxShadow: "0 0 5px 5px rgba(0, 0, 0, 20%)",
-  },
-  topBar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 4,
-    borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
-  },
-  closeButton: {
-    background: "#4081f7",
-    outline: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: "8px 16px",
-    borderRadius: 4,
-
-    "&:hover": {
-      background: "#3071e7",
-    },
-    "&:active": {
-      background: "#2061d7",
-    },
-  },
   content: {
     padding: 24,
     display: "flex",
@@ -83,10 +42,6 @@ const useStyles = createUseStyles({
   },
   button: {
     width: 75,
-  },
-  title: {
-    fontSize: 18,
-    paddingLeft: 8,
   },
 });
 
@@ -119,7 +74,7 @@ export const AddFriend = ({ close }: AddFriendProps) => {
           setError("Invalid code.");
         }
       }
-    })
+    });
   }, []);
 
   const add = () => {
@@ -131,70 +86,58 @@ export const AddFriend = ({ close }: AddFriendProps) => {
   };
 
   return (
-    <div className={classes.root}>
-      <div className={classes.modal}>
-        <div className={classes.topBar}>
-          <div className={classes.title}>Add a friend</div>
-          <button className={classes.closeButton} onClick={close}>
-            X
-          </button>
-        </div>
-        {loading ? (
-          <Spinner />
-        ) : (
-          <div className={classes.content}>
-            <div>
-              Click to copy friend code:
-              <div className={classes.row}>
-                <input
-                  className={classes.input}
-                  contentEditable={false}
-                  onClick={() => {
-                    inputRef.current?.select();
-                    navigator.clipboard.writeText(friendCode?.code);
-                    setMessage("Copied code");
-                  }}
-                  value={friendCode?.code}
-                  ref={inputRef}
-                />
-              </div>
-            </div>
-            <div>
-              <div className={classes.divider}>OR</div>
-            </div>
-            <div>
-              Paste friend code here:
-              <div className={classes.row}>
-                <input
-                  className={classes.input}
-                  onChange={(e) =>
-                    setCodeToAdd(e.target.value.substring(0, 6).toUpperCase())
-                  }
-                  value={codeToAdd ?? ""}
-                  onClick={() => {
-                    setError(null);
-                    setMessage(null);
-                  }}
-                />
-                <Button
-                  className={classes.button}
-                  disabled={codeToAdd?.length !== 6}
-                  size={"medium"}
-                  onClick={add}
-                >
-                  Add
-                </Button>
-              </div>
-              {error ? <div className={classes.error}>{error}</div> : <></>}
-              {message ? (
-                <div className={classes.message}>{message}</div>
-              ) : (
-                <></>
-              )}
+    <Modal close={close} title={"Add friend"}>
+      {loading ? (
+        <Spinner />
+      ) : (
+        <div className={classes.content}>
+          <div>
+            Click to copy friend code:
+            <div className={classes.row}>
+              <input
+                className={classes.input}
+                contentEditable={false}
+                onClick={() => {
+                  inputRef.current?.select();
+                  navigator.clipboard.writeText(friendCode?.code);
+                  setMessage("Copied code");
+                }}
+                value={friendCode?.code}
+                ref={inputRef}
+              />
             </div>
           </div>
-        )}
-      </div>
-    </div>
+          <div>
+            <div className={classes.divider}>OR</div>
+          </div>
+          <div>
+            Paste friend code here:
+            <div className={classes.row}>
+              <input
+                className={classes.input}
+                onChange={(e) =>
+                  setCodeToAdd(e.target.value.substring(0, 6).toUpperCase())
+                }
+                value={codeToAdd ?? ""}
+                onClick={() => {
+                  setError(null);
+                  setMessage(null);
+                }}
+              />
+              <Button
+                className={classes.button}
+                disabled={codeToAdd?.length !== 6}
+                size={"medium"}
+                onClick={add}
+              >
+                Add
+              </Button>
+            </div>
+            {error ? <div className={classes.error}>{error}</div> : <></>}
+            {message ? <div className={classes.message}>{message}</div> : <></>}
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 };

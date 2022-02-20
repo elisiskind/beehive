@@ -12,9 +12,11 @@ const useStyles = createUseStyles({
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "center",
     padding: 16,
     gap: 16,
+    justifyContent: "flex-start",
+    height: "calc(300px - 32px)",
+    overflowY: "scroll",
   },
   friendRequests: {
     padding: 16,
@@ -24,10 +26,10 @@ const useStyles = createUseStyles({
     border: "1px solid #dedede",
     margin: 16,
     borderRadius: 16,
-    width: 'calc(100% - 32px)'
+    width: "calc(100% - 32px)",
   },
   friends: {
-    width: 'calc(100% - 32px)'
+    width: "100%",
   },
 });
 
@@ -36,6 +38,7 @@ export const Friends = () => {
 
   const { friends, friendRequests } = useContext(DataContext);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [openFriend, setOpenFriend] = useState<string | null>(null);
 
   if (friends.length === 0 && friendRequests.length === 0) {
     return (
@@ -71,7 +74,11 @@ export const Friends = () => {
     ) : (
       <div className={classes.friends}>
         {friends.map((friend) => (
-          <FriendInfo user={friend} />
+          <FriendInfo
+            user={friend}
+            active={openFriend === friend.id}
+            setActive={setOpenFriend}
+          />
         ))}
       </div>
     );

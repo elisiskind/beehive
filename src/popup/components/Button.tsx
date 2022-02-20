@@ -57,7 +57,10 @@ export const Button: FunctionComponent<ButtonProps> = ({
     <button
       className={`${classes.root} ${className ? className : ""}`}
       disabled={disabled ?? false}
-      onClick={onClick}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
     >
       {children}
     </button>

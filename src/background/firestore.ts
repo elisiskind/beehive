@@ -159,4 +159,15 @@ export class Firestore {
     const friends = await Promise.all(friendIds.map(this.retrieveUser));
     return friends.filter((friend) => !!friend) as User[];
   };
+
+  removeFriend = async (userId: string, friendId: string) => {
+    Logging.info('Removing friend: ', friendId)
+    await setDoc(
+      doc(this._users(), userId),
+      {
+        friends: arrayRemove(friendId),
+      },
+      { merge: true }
+    );
+  }
 }

@@ -57,8 +57,8 @@ firebaseApp.listenForAuthUpdates(async (user) => {
       friendShipListenerUnsubscribe = firestore.listenForFriendshipUpdates(
         user.id,
         async (updatedFriend) => {
-          const friends = await ChromeStorage.get('friends');
-          const updatedFriends = friends?.map(friend => {
+          const friends = await ChromeStorage.get("friends");
+          const updatedFriends = friends?.map((friend) => {
             if (friend.id === updatedFriend.id) {
               return updatedFriend;
             } else {
@@ -126,15 +126,23 @@ Messages.listen(async (message) => {
           if (friend) {
             await firestore.addFriend(user, friend);
           }
-          Messages.send(new AddFriendResponseMessage(
-            friend?.name ?? friend?.email ?? friend?.id
-          ));
+          Messages.send(
+            new AddFriendResponseMessage(
+              friend?.name ?? friend?.email ?? friend?.id
+            )
+          );
         } else {
           Messages.send(new AddFriendResponseMessage());
         }
       } catch (e) {
         Logging.error("Failed to add friend code", e);
         Messages.send(new AddFriendResponseMessage());
+      }
+    }
+    if (Messages.isRemoveFriendRequest(message)) {
+      const user: User | null = await ChromeStorage.get("user");
+      if (user) {
+        await firestore.removeFriend(user.id, message.id);
       }
     }
   } catch (e) {

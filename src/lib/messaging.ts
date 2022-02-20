@@ -11,7 +11,8 @@ export type MessageType =
   | "generate-friend-code-response"
   | "add-friend-request"
   | "add-friend-response"
-  | "accept-friend-request";
+  | "accept-friend-request"
+  | "remove-friend-request";
 
 interface Message {
   readonly type: MessageType;
@@ -78,12 +79,18 @@ export class AcceptFriendRequestMessage implements Message {
   }
 }
 
+export class RemoveFriendRequestMessage implements Message {
+  readonly type: MessageType = "remove-friend-request";
+  readonly id: string;
+
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
 export class Messages {
-  static send = (
-    message: Message,
-    url?: string,
-  ) => {
-    Logging.info('Sending message!', message)
+  static send = (message: Message, url?: string) => {
+    Logging.info("Sending message!", message);
     if (url) {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         tabs.forEach((tab) => {
@@ -97,7 +104,10 @@ export class Messages {
   };
 
   static listen = (onMessage: (message: Message) => void) => {
-    const callback = (message: Message, sender: chrome.runtime.MessageSender) => {
+    const callback = (
+      message: Message,
+      sender: chrome.runtime.MessageSender
+    ) => {
       Logging.info("Received message from sender", message, sender.id);
       onMessage(message);
     };
@@ -157,5 +167,11 @@ export class Messages {
     message: Message
   ): message is AcceptFriendRequestMessage => {
     return message.type === "accept-friend-request";
+  };
+
+  static isRemoveFriendRequest = (
+    message: Message
+  ): message is RemoveFriendRequestMessage => {
+    return message.type === "remove-friend-request";
   };
 }
