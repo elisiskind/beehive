@@ -8,9 +8,9 @@ const useStyles = createUseStyles({
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    background: '#efefef',
+    background: "#efefef",
     borderRadius: 8,
-    padding:'4px 8px'
+    padding: "4px 8px",
   },
   profile: {
     height: 24,
@@ -21,7 +21,7 @@ const useStyles = createUseStyles({
     display: "flex",
     justifyContent: "flex-start",
     alignItems: "center",
-    gap: 4
+    gap: 4,
   },
 });
 
@@ -35,14 +35,7 @@ export const FriendRequest = ({ user }: FriendRequestProps) => {
   return (
     <div className={classes.root}>
       <div className={classes.profileInfo}>
-        <img
-          className={classes.profile}
-          src={
-            user.photo ??
-            "https://lh3.googleusercontent.com/pw/AM-JKLUfpoZSOE0mrMYpnEOaG_zlGQOwyPnheqPbUEBC7URlVTPd-0k7UKkxN0-ssDfR8omPLt2xrqx3qJgQQ5rzySrCtNPRxs1lWhU0L3bb9Znu2t9ycLWgt382zJ17vjR8m2hf4Rj5Wzdm9E-c-D8zP3316A=w990-h934-no?authuser=0"
-          }
-          alt={"profile"}
-        />
+        <img className={classes.profile} src={user.photo} alt={"profile"} />
         <div>{user.name}</div>
       </div>
       <Button

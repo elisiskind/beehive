@@ -4,7 +4,7 @@ import { createUseStyles } from "react-jss";
 const useStyles = createUseStyles({
   root: {
     height: 360,
-    width: 360,
+    width: 480,
     overflow: "hidden"
   }
 })

@@ -12,9 +12,10 @@ export type MessageType =
   | "add-friend-request"
   | "add-friend-response"
   | "accept-friend-request"
-  | "remove-friend-request";
+  | "remove-friend-request"
+  | "listen-to-friends-request";
 
-interface Message {
+export interface Message {
   readonly type: MessageType;
 }
 
@@ -88,27 +89,32 @@ export class RemoveFriendRequestMessage implements Message {
   }
 }
 
+export class ListenToFriendsRequestMessage implements Messages {
+  readonly type: MessageType = "listen-to-friends-request";
+}
+
 export class Messages {
   static send = (message: Message, url?: string) => {
-    Logging.info("Sending message!", message);
     if (url) {
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.query({ currentWindow: true }, (tabs) => {
         tabs.forEach((tab) => {
           if (tab.url?.includes(url) && tab.id) {
+            Logging.debug("[messaging] Sending " + message.type + " message to " + tab.id + ": ", message);
             chrome.tabs.sendMessage(tab.id, message);
           }
         });
       });
+    } else {
+      Logging.debug("[messaging] Sending " + message.type + " message: ", message);
+      chrome.runtime.sendMessage(message);
     }
-    chrome.runtime.sendMessage(message);
   };
 
   static listen = (onMessage: (message: Message) => void) => {
     const callback = (
-      message: Message,
-      sender: chrome.runtime.MessageSender
+      message: Message
     ) => {
-      Logging.info("Received message from sender", message, sender.id);
+      Logging.debug("[messaging] Received " + message.type + " message: ", message);
       onMessage(message);
     };
     chrome.runtime.onMessage.addListener(callback);
@@ -173,5 +179,11 @@ export class Messages {
     message: Message
   ): message is RemoveFriendRequestMessage => {
     return message.type === "remove-friend-request";
+  };
+
+  static isListenToFriendsRequest = (
+    message: Message
+  ): message is ListenToFriendsRequestMessage => {
+    return message.type === "listen-to-friends-request";
   };
 }

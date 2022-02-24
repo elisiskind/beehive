@@ -5,8 +5,11 @@ import {
   Messages,
 } from "../lib/messaging";
 import { Logging } from "../lib/logging";
+import { ExecutionContext, executionContext } from "../lib/utils";
 
-const extractGameInfo = () => {
+const removeListeners: (() => void)[] = [];
+
+const extractGameInfo = (): GameInfo => {
   const prefix = "window.gameData = ";
   const gameData = Array.from(document.getElementsByTagName("script"))
     .filter((script) => script.textContent !== null)
@@ -15,11 +18,10 @@ const extractGameInfo = () => {
     .map((content) => content.substring(prefix.length))
     .map((content) => JSON.parse(content))
     .map((gameData) => gameData.today)[0];
-
   if (gameData) {
     return gameData;
   } else {
-    throw new Error("Failed to find today's game info");
+    throw new Error("Game info was undefined");
   }
 };
 
@@ -28,19 +30,38 @@ const extractGuesses = (): Guesses | null => {
   return currentState ? JSON.parse(currentState) : null;
 };
 
+const disconnect = () => {
+  Logging.info("Disconnecting content script:");
+  while (removeListeners.length > 0) {
+    removeListeners.pop()?.();
+  }
+};
+
 const sendGameInfo = async () => {
-  Messages.send(new GameInfoResponseMessage(await extractGameInfo()));
+  const gameInfo = await extractGameInfo();
+  Logging.info("Sending info: ", gameInfo);
+  Messages.send(new GameInfoResponseMessage(gameInfo));
 };
 
 const listenForMessages = () => {
-  Messages.listen(async (message) => {
+  return Messages.listen(async (message) => {
     if (
       Messages.isGameInfoRequest(message) ||
       Messages.isLoginRequest(message)
     ) {
-      sendGameInfo().catch(e => {
-        Logging.error('Failed to respond with game info: ', e)
-      });
+      Logging.info("Received game info request.");
+      try {
+        await sendGameInfo();
+      } catch (e) {
+        if ((e as Error).message.includes("Extension context invalidated")) {
+          disconnect();
+        } else {
+          Logging.error("Error sending game info", {
+            message: "hello",
+            error: JSON.stringify(e),
+          });
+        }
+      }
     }
   });
 };
@@ -48,27 +69,43 @@ const listenForMessages = () => {
 const sendGuesses = () => {
   const guesses = extractGuesses();
   if (guesses) {
-    setTimeout(
-      () => Messages.send(new GuessesResponseMessage(guesses)),
-      100
-    );
+    setTimeout(() => {
+      try {
+        Messages.send(new GuessesResponseMessage(guesses));
+      } catch (e) {
+        if ((e as Error).message.includes("Extension context invalidated")) {
+          disconnect();
+        } else {
+          Logging.error("Error sending guesses", e);
+        }
+      }
+    }, 100);
   }
 };
 
 const listenForUserInput = () => {
-  window.onkeyup = (e) => {
+  const submitCallback = () => sendGuesses();
+  const keyPressCallback = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       sendGuesses();
     }
   };
 
-  document
-    .getElementsByClassName("hive-action__submit")[0]
-    ?.addEventListener("click", () => {
-      setTimeout(() => sendGuesses(), 100);
-    });
+  window.addEventListener("keyup", keyPressCallback);
+  const submitButton = document.getElementsByClassName(
+    "hive-action__submit"
+  )[0];
+  submitButton?.addEventListener("click", submitCallback);
+
+  return () => {
+    submitButton.removeEventListener("click", submitCallback);
+    window.removeEventListener("keyup", keyPressCallback);
+  };
 };
 
-listenForUserInput();
-listenForMessages();
-sendGuesses();
+if (executionContext() === ExecutionContext.CONTENT_SCRIPT) {
+  Logging.info("Initiating listeners");
+  removeListeners.push(listenForUserInput());
+  removeListeners.push(listenForMessages());
+  sendGuesses();
+}

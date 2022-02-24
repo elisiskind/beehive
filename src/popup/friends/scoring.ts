@@ -1,4 +1,4 @@
-import { Levels } from "../../lib/interfaces";
+import { Rank, Ranks } from "../../lib/interfaces";
 
 export const getScore = (words: string[], pangrams: string[]) => {
   return words
@@ -12,38 +12,38 @@ export const getScore = (words: string[], pangrams: string[]) => {
     .reduce((a, b) => a + b, 0);
 };
 
-export const getLevel = (
+export const getRank = (
   score: number,
   words: string[],
   pangrams: string[]
-) => {
+): Rank => {
   const total = getScore(words, pangrams);
 
-  const levels: Levels = (
+  const ranks: Ranks = (
     [
-      ["Beginner", 0],
-      ["Good Start", 2],
-      ["Moving Up", 5],
-      ["Good", 8],
-      ["Solid", 15],
-      ["Nice", 25],
-      ["Great", 40],
-      ["Amazing", 50],
-      ["Genius", 70],
-    ] as Levels
-  ).map(([title, minScore]) => {
-    return [title, Math.round((minScore / 100) * total)];
+      [Rank.BEGINNER, 0],
+      [Rank.GOOD_START, 2],
+      [Rank.MOVING_UP, 5],
+      [Rank.GOOD, 8],
+      [Rank.SOLID, 15],
+      [Rank.NICE, 25],
+      [Rank.GREAT, 40],
+      [Rank.AMAZING, 50],
+      [Rank.GENIUS, 70],
+      [Rank.QUEEN_BEE, 100],
+    ] as Ranks
+  ).map(([rank, minScore]) => {
+    return [rank, Math.round((minScore / 100) * total)];
   });
 
-  console.log(levels)
-
   let currentMaxScore = 0;
-  let currentRank = "";
-  for (let [rank, maxScore] of levels) {
+  let currentRank = Rank.BEGINNER;
+  for (let [rank, maxScore] of ranks) {
     if (score >= maxScore && maxScore >= currentMaxScore) {
       currentRank = rank;
       currentMaxScore = maxScore;
     }
   }
+
   return currentRank;
 };

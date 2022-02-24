@@ -4,7 +4,7 @@ import { createUseStyles } from "react-jss";
 import { Button } from "./components/Button";
 import { Slide } from "./components/Slide";
 import { Grid } from "./hints/Grid";
-import { Friends } from "./friends/Friends";
+import { Leaderboard } from "./friends/Leaderboard";
 import { NavBar } from "./components/NavBar";
 
 type Tab = "Hints" | "Friends" | "none";
@@ -12,12 +12,12 @@ type Tab = "Hints" | "Friends" | "none";
 const useStyles = createUseStyles({
   root: {
     height: 360,
-    width: 360,
+    width: 480,
     display: "flex",
     flexDirection: "column",
   },
   nav: {
-    width: "360px",
+    width: 480,
     height: "calc(300px)",
     display: "flex",
     flexDirection: "column",
@@ -54,7 +54,7 @@ const Content = () => {
             Hints
           </Button>
           <Button size={"large"} onClick={() => setActiveTab("Friends")}>
-            Friends
+            Leaderboard
           </Button>
         </div>
       </Slide>
@@ -62,7 +62,7 @@ const Content = () => {
         <Grid />
       </Slide>
       <Slide enter={activeTab === "Friends"}>
-        <Friends />
+        <Leaderboard />
       </Slide>
     </div>
   );

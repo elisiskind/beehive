@@ -6,6 +6,8 @@ import { AddFriend } from "./AddFriend";
 import { FriendInfo } from "./FriendInfo";
 import { createUseStyles } from "react-jss";
 import { FriendRequest } from "./FriendRequest";
+import { Rank } from "../../lib/interfaces";
+import { getRank, getScore } from "./scoring";
 
 const useStyles = createUseStyles({
   root: {
@@ -16,7 +18,7 @@ const useStyles = createUseStyles({
     gap: 16,
     justifyContent: "flex-start",
     height: "calc(300px - 32px)",
-    overflowY: "scroll",
+    overflowY: "auto",
   },
   friendRequests: {
     padding: 16,
@@ -30,13 +32,27 @@ const useStyles = createUseStyles({
   },
   friends: {
     width: "100%",
+    display: "flex",
+    flexDirection: 'column',
+    gap: 4
   },
 });
 
-export const Friends = () => {
+export interface LeaderBoardFriend {
+  id: string;
+  name: string;
+  score: number;
+  rank: Rank;
+  pangram: boolean;
+  guesses: string[];
+  photo: string;
+  isMe: boolean;
+}
+
+export const Leaderboard = () => {
   const classes = useStyles();
 
-  const { friends, friendRequests } = useContext(DataContext);
+  const { friends, friendRequests, user, gameInfo, guesses } = useContext(DataContext);
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [openFriend, setOpenFriend] = useState<string | null>(null);
 
@@ -68,18 +84,55 @@ export const Friends = () => {
       </div>
     );
 
+  const foundPangram = (guesses: string[]) => {
+    for (let pangram of gameInfo.pangrams) {
+      if (guesses.includes(pangram)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const sortedFriends = [...friends, user]
+    .map((friend): LeaderBoardFriend => {
+      const isMe = user.id === friend.id;
+      const friendGuesses = isMe ? guesses : friend.guesses[gameInfo.id] ?? [];
+      const score = getScore(friendGuesses, gameInfo.pangrams);
+      const rank = getRank(score, gameInfo.answers, gameInfo.pangrams);
+
+      return {
+        id: friend.id,
+        photo: friend.photo,
+        name: friend.name ?? friend.email ?? friend.id,
+        pangram: foundPangram(friendGuesses),
+        rank,
+        score,
+        guesses: friendGuesses,
+        isMe
+      };
+    })
+    .sort((friendA, friendB) => {
+      return friendB.score - friendA.score;
+    });
+
   const friendsContent =
     friends.length === 0 ? (
       <></>
     ) : (
       <div className={classes.friends}>
-        {friends.map((friend) => (
-          <FriendInfo
-            user={friend}
-            active={openFriend === friend.id}
-            setActive={setOpenFriend}
-          />
-        ))}
+        {sortedFriends.map((friend) => {
+          return (
+            <FriendInfo
+              {...{
+                ...friend,
+                ...{
+                  active: openFriend === friend.id,
+                  setActive: setOpenFriend,
+                },
+              }}
+            />
+          );
+        })}
       </div>
     );
 

@@ -1,7 +1,6 @@
 import {
   getAuth,
   GoogleAuthProvider,
-  onAuthStateChanged,
   signInWithCredential,
   User as FirebaseUser,
 } from "firebase/auth";
@@ -12,7 +11,19 @@ import {
 import { getFirestore } from "firebase/firestore";
 import { User } from "../lib/interfaces";
 import { Firestore } from "./firestore";
-import { Logging } from "../lib/logging";
+
+const createUser = (firebaseUser: FirebaseUser): User => {
+  return {
+    name: firebaseUser.displayName,
+    photo:
+      firebaseUser.photoURL ??
+      "https://lh3.googleusercontent.com/pw/AM-JKLUfpoZSOE0mrMYpnEOaG_zlGQOwyPnheqPbUEBC7URlVTPd-0k7UKkxN0-ssDfR8omPLt2xrqx3qJgQQ5rzySrCtNPRxs1lWhU0L3bb9Znu2t9ycLWgt382zJ17vjR8m2hf4Rj5Wzdm9E-c-D8zP3316A=w990-h934-no?authuser=0",
+    id: firebaseUser.uid,
+    email: firebaseUser.email,
+    friends: [],
+    guesses: {},
+  };
+};
 
 export class FirebaseApp {
   readonly app: FirebaseAppInternal;
@@ -31,25 +42,20 @@ export class FirebaseApp {
     this._firestore = new Firestore(getFirestore());
   }
 
-  auth() {
-    return getAuth();
-  }
-
   getFirestore = () => this._firestore;
 
   login = () => {
-    return new Promise<void>((resolve, reject) => {
-      Logging.info("Logging in!");
+    return new Promise<User>((resolve, reject) => {
       chrome.identity.getAuthToken({ interactive: true }, (token) => {
         const credential = GoogleAuthProvider.credential(null, token);
-        signInWithCredential(this.auth(), credential)
-          .then(() => resolve())
+        signInWithCredential(getAuth(), credential)
+          .then((value) => resolve(this._onSignIn(value.user)))
           .catch(() => {
             chrome.identity.clearAllCachedAuthTokens(() => {
               chrome.identity.getAuthToken({ interactive: true }, (token) => {
                 const credential = GoogleAuthProvider.credential(null, token);
-                signInWithCredential(this.auth(), credential)
-                  .then(() => resolve())
+                signInWithCredential(getAuth(), credential)
+                  .then((value) => resolve(this._onSignIn(value.user)))
                   .catch((e) => {
                     reject("Failed to sign in: " + e);
                   });
@@ -61,28 +67,22 @@ export class FirebaseApp {
   };
 
   logout = async () => {
-    Logging.info("Signed out!");
-    await this.auth().signOut();
+    await getAuth().signOut();
   };
 
-  listenForAuthUpdates = (
-    setUser: (user: User | null) => void,
-    createUser: (firebaseUser: FirebaseUser) => Promise<User>
-  ) => {
-    onAuthStateChanged(this.auth(), async (firebaseUser) => {
-      Logging.info("Auth changed", firebaseUser);
-      if (firebaseUser?.uid) {
-        let user = await this._firestore.retrieveUser(firebaseUser?.uid);
-        if (!user) {
-          user = await createUser(firebaseUser);
-          await this._firestore.saveUser(user);
-        } else if(!user.name && firebaseUser.displayName) {
-          await this._firestore.updateUserName(user.id, firebaseUser.displayName)
-        }
-        setUser(user);
-      } else {
-        setUser(null);
-      }
-    });
+  currentUser = (): User | null => {
+    const currentUser = getAuth().currentUser;
+    return currentUser ? createUser(currentUser) : null;
+  };
+
+  private _onSignIn = async (firebaseUser: FirebaseUser): Promise<User> => {
+    let user = await this._firestore.retrieveUser(firebaseUser?.uid);
+    if (!user) {
+      user = createUser(firebaseUser);
+      await this._firestore.saveUser(user);
+    } else if (!user.name && firebaseUser.displayName) {
+      await this._firestore.updateUserName(user.id, firebaseUser.displayName);
+    }
+    return user;
   };
 }

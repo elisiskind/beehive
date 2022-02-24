@@ -19,12 +19,12 @@ export class Tabs {
   };
 
   static enableExtension = async (tabId: number) => {
-    Logging.info("Enabling");
+    Logging.debug('Enabling extension: ' + tabId)
     await chrome.action.enable(tabId);
   };
 
   static disableExtension = async (tabId: number) => {
-    Logging.info("Disabling");
+    Logging.debug('Disabling extension: ' + tabId)
     await chrome.action.disable(tabId);
   };
 }

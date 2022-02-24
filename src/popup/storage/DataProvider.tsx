@@ -11,16 +11,18 @@ import { Login } from "../Login";
 import { FriendCode, GameInfo, Guesses, User } from "../../lib/interfaces";
 import {
   GameInfoRequestMessage,
+  ListenToFriendsRequestMessage,
   LoginRequestMessage,
   Messages,
 } from "../../lib/messaging";
 import { ChromeStorage } from "../../lib/storage";
 import { isExpired } from "../../lib/utils";
+import { Logging } from "../../lib/logging";
 
 const useStyles = createUseStyles({
   rootLoading: {
     height: 360,
-    width: 360,
+    width: 480,
     background: "#f7da21",
     display: "flex",
     flexDirection: "column",
@@ -28,7 +30,7 @@ const useStyles = createUseStyles({
   },
   root: {
     height: 360,
-    width: 360,
+    width: 480,
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
@@ -80,7 +82,12 @@ export const DataProvider: FunctionComponent = ({ children }) => {
     ChromeStorage.listen("friend-requests", setFriendRequests);
 
     Promise.all([
-      ChromeStorage.get("user").then(setUser),
+      ChromeStorage.get("user").then((user) => {
+        if (user) {
+          Messages.send(new ListenToFriendsRequestMessage());
+        }
+        setUser(user);
+      }),
       ChromeStorage.get("guesses").then(setGuesses),
       ChromeStorage.get("friend-code").then(setFriendCode),
       ChromeStorage.get("friends").then(setFriends),
@@ -89,6 +96,7 @@ export const DataProvider: FunctionComponent = ({ children }) => {
         if (gameInfo && !isExpired(gameInfo)) {
           setGameInfo(gameInfo);
         } else {
+          Logging.info("Requesting game info because it is expired.");
           Messages.send(
             new GameInfoRequestMessage(),
             "nytimes.com/puzzles/spelling-bee"
@@ -109,6 +117,18 @@ export const DataProvider: FunctionComponent = ({ children }) => {
   if (!gameInfo || dataLoading || authLoading || !user) {
     return (
       <div className={classes.rootLoading}>
+        <div>
+          gameInfo: {JSON.stringify(!!gameInfo)}
+        </div>
+        <div>
+          dataLoading: {JSON.stringify(dataLoading)}
+        </div>
+        <div>
+          authLoading: {JSON.stringify(authLoading)}
+        </div>
+        <div>
+          user: {JSON.stringify(!!user)}
+        </div>
         <Spinner />
       </div>
     );

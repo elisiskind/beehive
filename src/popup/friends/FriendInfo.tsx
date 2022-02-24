@@ -1,12 +1,17 @@
-import { User } from "../../lib/interfaces";
 import { createUseStyles } from "react-jss";
 import { useContext, useState } from "react";
 import { DataContext } from "../storage/DataProvider";
-import { getLevel, getScore } from "./scoring";
-import { ScoreDifference } from "./ScoreDifference";
 import { Button } from "../components/Button";
+import { LeaderBoardFriend } from "./Leaderboard";
 import { Modal } from "../components/Modal";
+import { Logging } from "../../lib/logging";
 import { Messages, RemoveFriendRequestMessage } from "../../lib/messaging";
+import { FriendPill } from "./FriendPill";
+
+interface StyleProps {
+  expanded: boolean;
+  isMe: boolean;
+}
 
 const useStyles = createUseStyles({
   root: {
@@ -14,11 +19,11 @@ const useStyles = createUseStyles({
     flexDirection: "column",
     padding: 16,
     transition: "gap 0.2s ease-in-out",
-    cursor: "pointer",
+    cursor:  "pointer",
     borderRadius: 8,
 
     "&:hover": {
-      background: "#efefef",
+      background:  "#efefef"
     },
   },
   bar: {
@@ -30,11 +35,13 @@ const useStyles = createUseStyles({
     height: 24,
     width: 24,
     borderRadius: "50%",
+    border: ({ isMe }: StyleProps) => (isMe ? "2px solid #f7da21" : "none"),
   },
   profileInfo: {
     display: "flex",
     justifyContent: "flex-start",
     alignItems: "center",
+    fontWeight: ({ isMe }: StyleProps) => (isMe ? "bold" : "normal"),
     gap: 4,
   },
   level: {
@@ -43,8 +50,7 @@ const useStyles = createUseStyles({
     borderRadius: 4,
   },
   details: {
-    maxHeight: ({ expanded }: { expanded: boolean }) =>
-      expanded ? "100vh" : "0.01vh",
+    maxHeight: ({ expanded }: StyleProps) => (expanded ? "100vh" : "0.01vh"),
     transition: "max-height 0.2s ease-in-out",
     overflow: "hidden",
   },
@@ -79,30 +85,35 @@ const useStyles = createUseStyles({
     display: "flex",
     flexDirection: "column",
     padding: 16,
-    gap: 16
+    gap: 16,
   },
   modalButtons: {
     display: "flex",
     gap: 16,
-    justifyContent: "center"
-  }
+    justifyContent: "center",
+  },
 });
 
-interface FriendInfoProps {
-  user: User;
+interface FriendInfoProps extends LeaderBoardFriend {
   active: boolean;
   setActive: (id: string | null) => void;
 }
 
-export const FriendInfo = ({ user, setActive, active }: FriendInfoProps) => {
-  const { gameInfo, guesses: myGuesses } = useContext(DataContext);
-  const myScore = getScore(myGuesses, gameInfo.pangrams);
-  const guesses = user.guesses[gameInfo.id] ?? [];
+export const FriendInfo = ({
+  id,
+  name,
+  score,
+  rank,
+  pangram,
+  guesses,
+  setActive,
+  active,
+  photo,
+  isMe,
+}: FriendInfoProps) => {
+  const { guesses: myGuesses } = useContext(DataContext);
 
-  const classes = useStyles({ expanded: active });
-
-  const score = getScore(guesses, gameInfo.pangrams);
-  const level = getLevel(score, gameInfo.answers, gameInfo.pangrams);
+  const classes = useStyles({ expanded: active, isMe });
 
   const wordsInCommon = guesses.filter((guess) => myGuesses.includes(guess));
   const yourWords = myGuesses.filter((guess) => !guesses.includes(guess));
@@ -112,28 +123,100 @@ export const FriendInfo = ({ user, setActive, active }: FriendInfoProps) => {
 
   const [showRemoveModal, setShowRemoveModal] = useState<boolean>(false);
 
-  const foundPangram = () => {
-    for (let pangram of gameInfo.pangrams) {
-      if (guesses.includes(pangram)) {
-        return true;
-      }
-    }
-  };
+  const removeFriend = (
+    <div className={classes.removeFriendButtonContainer}>
+      <Button
+        className={classes.removeFriendButton}
+        size={"small"}
+        onClick={() => {
+          setShowRemoveModal(true);
+        }}
+      >
+        Remove friend
+      </Button>
+    </div>
+  );
 
+  const details = (
+    <div className={classes.details}>
+      <div className={classes.detailsInner}>
+        {isMe ? (
+          <>
+            <div className={classes.div} />
+            <div>
+              <div className={classes.infoTitle}>
+                You found {guesses.length}{" "}
+                {guesses.length === 1 ? "word" : "words"}.
+              </div>
+              <div>{guesses.join(", ")}</div>
+            </div>
+          </>
+        ) : score === 0 ? (
+          removeFriend
+        ) : (
+          <>
+            {wordsInCommon.length > 0 ? (
+              <div>
+                <div className={classes.infoTitle}>
+                  You found {wordsInCommon.length}{" "}
+                  {wordsInCommon.length === 1 ? "word" : "words"} in common.
+                </div>
+                <div>{wordsInCommon.join(", ")}</div>
+              </div>
+            ) : (
+              <div className={classes.infoTitle}>
+                You haven't found any words in common yet.
+              </div>
+            )}
+            <div className={classes.div} />
+            {yourWords.length > 0 ? (
+              <div>
+                <div className={classes.infoTitle}>
+                  You've found {yourWords.length}{" "}
+                  {yourWords.length === 1 ? "word" : "words"} that they haven't
+                  found:
+                </div>
+                <div>{yourWords.join(", ")}</div>
+              </div>
+            ) : (
+              <div className={classes.infoTitle}>
+                You haven't found any words that they haven't found.
+              </div>
+            )}
+            <div className={classes.div} />
+            {theirWordCount > 0 ? (
+              <div>
+                <div className={classes.infoTitle}>
+                  They've found {theirWordCount}{" "}
+                  {theirWordCount === 1 ? "word" : "words"} that you haven't
+                  found.
+                </div>
+              </div>
+            ) : (
+              <div className={classes.infoTitle}>
+                They haven't found any words that you haven't found.
+              </div>
+            )}
+            {removeFriend}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // noinspection PointlessBooleanExpressionJS
   return (
     <>
       {showRemoveModal ? (
         <Modal close={() => setShowRemoveModal(false)} title={"Remove Friend"}>
           <div className={classes.modalContent}>
-            <div>
-              Are you sure you want to remove{" "}
-              {user.name ?? user.email ?? "this friend"}?
-            </div>
+            <div>Are you sure you want to remove {name ?? "this friend"}?</div>
             <div className={classes.modalButtons}>
               <span>
                 <Button
                   onClick={() => {
-                    Messages.send(new RemoveFriendRequestMessage(user.id));
+                    Messages.send(new RemoveFriendRequestMessage(id));
+                    Logging.info("Removing friend");
                     setShowRemoveModal(false);
                     setActive(null);
                   }}
@@ -154,82 +237,21 @@ export const FriendInfo = ({ user, setActive, active }: FriendInfoProps) => {
       )}
       <div
         className={classes.root}
-        onClick={() => setActive(active ? null : user.id)}
+        onClick={() => (setActive(active ? null : id))}
       >
         <div className={classes.bar}>
           <div className={classes.profileInfo}>
-            <img
-              className={classes.profile}
-              src={
-                user.photo ??
-                "https://lh3.googleusercontent.com/pw/AM-JKLUfpoZSOE0mrMYpnEOaG_zlGQOwyPnheqPbUEBC7URlVTPd-0k7UKkxN0-ssDfR8omPLt2xrqx3qJgQQ5rzySrCtNPRxs1lWhU0L3bb9Znu2t9ycLWgt382zJ17vjR8m2hf4Rj5Wzdm9E-c-D8zP3316A=w990-h934-no?authuser=0"
-              }
-              alt={"profile"}
-            />
-            <div>{user.name ?? user.email}</div>
-            <ScoreDifference myScore={myScore} theirScore={score} />
+            <img className={classes.profile} src={photo} alt={"profile"} />
+            <div>{name}</div>
           </div>
-          <div className={classes.level}>
-            {level}
-            {foundPangram() ? "*" : ""}
-          </div>
+          <FriendPill
+            rank={rank}
+            wordCount={guesses.length}
+            score={score}
+            pangram={pangram}
+          />
         </div>
-        <div className={classes.details}>
-          <div className={classes.detailsInner}>
-            <div>
-              {guesses.length} words, {score} points
-            </div>
-            <div className={classes.div} />
-            {wordsInCommon.length > 0 ? (
-              <div>
-                <div className={classes.infoTitle}>
-                  You both got these words:
-                </div>
-                <div>{wordsInCommon.join(", ")}</div>
-              </div>
-            ) : (
-              <div className={classes.infoTitle}>
-                You haven't found any words in common yet.
-              </div>
-            )}
-            <div className={classes.div} />
-            {yourWords.length > 0 ? (
-              <div>
-                <div className={classes.infoTitle}>
-                  You've found these words that they haven't found:
-                </div>
-                <div>{yourWords.join(", ")}</div>
-              </div>
-            ) : (
-              <div className={classes.infoTitle}>
-                You haven't found any words that they haven't found.
-              </div>
-            )}
-            <div className={classes.div} />
-            {theirWordCount > 0 ? (
-              <div>
-                <div className={classes.infoTitle}>
-                  They've found {theirWordCount} words that you haven't found.
-                </div>
-              </div>
-            ) : (
-              <div className={classes.infoTitle}>
-                They haven't found any words that you haven't found.
-              </div>
-            )}
-            <div className={classes.removeFriendButtonContainer}>
-              <Button
-                className={classes.removeFriendButton}
-                size={"small"}
-                onClick={() => {
-                  setShowRemoveModal(true);
-                }}
-              >
-                Remove friend
-              </Button>
-            </div>
-          </div>
-        </div>
+        {details}
       </div>
     </>
   );

@@ -19,15 +19,17 @@
   "permissions": [
     "tabs",
     "storage",
-    "identity"
+    "identity",
+    "background",
+    "scripting"
   ],
   "host_permissions": [
-    "*://www.nytimes.com/puzzles/spelling-bee"
+    "https://www.nytimes.com/puzzles/spelling-bee"
   ],
   "content_scripts": [
     {
       "matches": [
-        "*://www.nytimes.com/puzzles/spelling-bee"
+        "https://www.nytimes.com/puzzles/spelling-bee"
       ],
       "js": [
         "content.js"

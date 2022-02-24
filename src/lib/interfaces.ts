@@ -1,4 +1,23 @@
-export type Levels = [string, number][];
+export enum Rank {
+  BEGINNER = "Beginner",
+  GOOD_START = "Good Start",
+  MOVING_UP = "Moving Up",
+  GOOD = "Good",
+  SOLID = "Solid",
+  NICE = "Nice",
+  GREAT = "Great",
+  AMAZING = "Amazing",
+  GENIUS = "Genius",
+  QUEEN_BEE = "♛ Queen Bee",
+}
+
+// @ts-ignore
+export const rankRanking: Record<Rank, number> = Object.values(Rank).reduce((prev: Record<Rank, number>, r: Rank, index) => {
+    prev[r] = index;
+    return prev;
+  }, {});
+
+export type Ranks = [Rank, number][];
 
 export interface GameInfo {
   answers: string[];
@@ -16,16 +35,12 @@ export interface GameInfo {
 export interface User {
   id: string;
   name: string | null;
-  photo: string | null;
+  photo: string;
   email: string | null;
   friends: string[];
-  friendCode?: {
-    code: string;
-    expiration: number;
-  },
   guesses: {
     [gameId: number]: string[];
-  }
+  };
 }
 
 export interface Guesses {

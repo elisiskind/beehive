@@ -8,13 +8,11 @@ interface SlideProps {
 
 const useStyles = createUseStyles({
   root: {
-    overflow: "visible",
-    position: "relative"
   },
   slide: {
-    width: 360,
+    width: 480,
     position: "absolute",
-    left: ({ enter, left }: SlideProps) => enter ? 0 : (left ? -360 : 360),
+    left: ({ enter, left }: SlideProps) => enter ? 0 : (left ? -480 : 480),
     transition: 'left 0.4s ease-in-out',
   }
 });

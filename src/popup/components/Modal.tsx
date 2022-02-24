@@ -4,7 +4,7 @@ import { createUseStyles } from "react-jss";
 const useStyles = createUseStyles({
   root: {
     position: "fixed",
-    width: 360,
+    width: 480,
     height: "100%",
     top: 0,
     left: 0,

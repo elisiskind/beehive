@@ -10,6 +10,15 @@ import {
 } from "firebase/firestore";
 import { FriendCode, Guesses, User } from "../lib/interfaces";
 import { Logging } from "../lib/logging";
+import { Friends } from "./friends";
+import {
+  DocumentReference,
+  DocumentSnapshot,
+  FirestoreError,
+  SetOptions,
+  Unsubscribe,
+  WithFieldValue,
+} from "@firebase/firestore";
 
 export class Firestore {
   readonly _firestore: FirestoreInternal;
@@ -30,20 +39,39 @@ export class Firestore {
     return collection(this._firestore, "friend-requests");
   };
 
+  private _onSnapshot<T>(
+    reference: DocumentReference<T>,
+    onNext: (snapshot: DocumentSnapshot<T>) => void,
+    onError?: (error: FirestoreError) => void,
+    onCompletion?: () => void
+  ): Unsubscribe {
+    Logging.debug("Subscribing to snapshot:" + reference.path);
+    return onSnapshot(reference, onNext, onError);
+  }
+
+  private _setDoc<T>(
+    reference: DocumentReference<T>,
+    data: WithFieldValue<T>,
+    options?: SetOptions
+  ): Promise<void> {
+    Logging.debug("Setting doc:" + reference.path + ": ", data);
+    return options ? setDoc(reference, data, options) : setDoc(reference, data);
+  }
+
   saveUser = async (user: User) => {
     if (user.id) {
-      await setDoc(doc(this._users(), user.id), user);
+      await this._setDoc(doc(this._users(), user.id), user);
     } else {
       throw new Error("User must have id. User: " + user);
     }
   };
 
   updateUserName = async (userId: string, name: string) => {
-    await setDoc(doc(this._users(), userId), { name }, { merge: true });
+    await this._setDoc(doc(this._users(), userId), { name }, { merge: true });
   };
 
   updateGuesses = async (userId: string, guesses: Guesses) => {
-    await setDoc(
+    await this._setDoc(
       doc(this._users(), userId),
       {
         guesses: {
@@ -60,15 +88,13 @@ export class Firestore {
   };
 
   addFriendCode = async (code: FriendCode) => {
-    Logging.info("setting friend code");
-    await setDoc(doc(this._friendCodes(), code.code), {
+    await this._setDoc(doc(this._friendCodes(), code.code), {
       userId: code.userId,
       expiration: code.expiration,
     });
   };
 
   findFriend = async (code: string) => {
-    Logging.info("Finding code", code);
     const friendCode = (await getDoc(doc(this._friendCodes(), code))).data() as
       | FriendCode
       | undefined;
@@ -78,51 +104,48 @@ export class Firestore {
       return null;
     }
   };
-
   addFriend = async (user: User, friend: User) => {
     await this.acceptFriendRequest(friend.id, user.id);
-    await setDoc(
-      doc(this._friendRequests(), friend.id),
-      {
-        friends: arrayUnion(user.id),
-      },
-      { merge: true }
-    );
+    if (!friend.friends.includes(user.id)) {
+      await setDoc(
+        doc(this._friendRequests(), friend.id),
+        {
+          friends: arrayUnion(user.id),
+        },
+        { merge: true }
+      );
+    }
+  };
+
+  private _subscribeToFriend = (
+    id: string,
+    callback: (friend: User) => void
+  ) => {
+    return this._onSnapshot(doc(this._users(), id), (friendSnapshot) => {
+      callback(friendSnapshot.data() as User);
+    });
   };
 
   listenForFriendshipUpdates(
     userId: string,
-    onFriendUpdate: (friend: User) => void,
+    setUpdatedFriendList: (friends: User[]) => void,
     onFriendRequestsUpdate: (friends: User[]) => void
-  ) {
-    const unsubscribeFriendsWords: (() => void)[] = [];
+  ): Unsubscribe {
+    const friends = new Friends();
 
-    const unsubscribeFriends = onSnapshot(
+    const unsubscribeFriends = this._onSnapshot(
       doc(this._users(), userId),
       async (snapshot) => {
-        console.log("List update!");
-        while (unsubscribeFriendsWords.length > 0) {
-          unsubscribeFriendsWords.pop()?.();
-        }
-        const friendIds: string[] = snapshot.data()?.friends ?? [];
-        const friends = await this.retrieveFriends(friendIds);
-        for (let friend of friends) {
-          const unsubscribe = onSnapshot(
-            doc(this._users(), friend.id),
-            (friendSnapshot) => {
-              Logging.info("update!");
-              const updatedFriend = friendSnapshot.data();
-              if (updatedFriend) onFriendUpdate(updatedFriend as User);
-            }
-          );
-          unsubscribeFriendsWords.push(() => {
-            Logging.info("unsubscribe!");
-            unsubscribe();
-          });
-        }
+        const updatedFriendIds: string[] = snapshot.data()?.friends ?? [];
+        friends.handleUpdates(
+          updatedFriendIds,
+          this._subscribeToFriend,
+          setUpdatedFriendList
+        );
       }
     );
-    const unsubscribeFriendRequests = onSnapshot(
+
+    const unsubscribeFriendRequests = this._onSnapshot(
       doc(this._friendRequests(), userId),
       async (snapshot) => {
         const friendIds: string[] = snapshot.data()?.friends ?? [];
@@ -132,21 +155,22 @@ export class Firestore {
     );
 
     return () => {
+      Logging.info("Unsubscribing from all");
       unsubscribeFriends();
       unsubscribeFriendRequests();
-      unsubscribeFriendsWords.forEach((unsubscribe) => unsubscribe());
+      friends.removeAll();
     };
   }
 
   acceptFriendRequest = async (friendId: string, userId: string) => {
-    await setDoc(
+    await this._setDoc(
       doc(this._friendRequests(), userId),
       {
         friends: arrayRemove(friendId),
       },
       { merge: true }
     );
-    await setDoc(
+    await this._setDoc(
       doc(this._users(), userId),
       {
         friends: arrayUnion(friendId),
@@ -161,13 +185,12 @@ export class Firestore {
   };
 
   removeFriend = async (userId: string, friendId: string) => {
-    Logging.info('Removing friend: ', friendId)
-    await setDoc(
+    await this._setDoc(
       doc(this._users(), userId),
       {
         friends: arrayRemove(friendId),
       },
       { merge: true }
     );
-  }
+  };
 }

@@ -4,13 +4,13 @@ import {
   Messages,
 } from "../lib/messaging";
 import { ChromeStorage } from "../lib/storage";
-import { Tabs } from "../lib/tabs";
 import { FirebaseApp } from "./firebase";
 import { User } from "../lib/interfaces";
 import { generateFriendCode } from "./friends";
 import { Logging } from "../lib/logging";
 import { Unsubscribe } from "@firebase/firestore";
-import { User as FirebaseUser } from "@firebase/auth";
+import { Tabs } from "../lib/tabs";
+import { ExecutionContext, executionContext } from "../lib/utils";
 
 Tabs.onTab(
   ["nytimes.com/puzzles/spelling-bee"],
@@ -23,104 +23,100 @@ const firestore = firebaseApp.getFirestore();
 
 let friendShipListenerUnsubscribe: Unsubscribe | null = null;
 
-// Create a new user, and initialize with current guesses if necessary
-const createUser = async (firebaseUser: FirebaseUser): Promise<User> => {
-  return {
-    name: firebaseUser.displayName,
-    photo: firebaseUser.photoURL,
-    id: firebaseUser.uid,
-    email: firebaseUser.email,
-    friends: [],
-    guesses: {},
-  };
+const onSignIn = async (user: User) => {
+  ChromeStorage.get("guesses").then((guesses) => {
+    if (guesses) {
+      firestore.updateGuesses(user.id, guesses);
+    }
+  });
+
+  const friends = (
+    await Promise.all(
+      user.friends.map((friendId) => {
+        return firestore.retrieveUser(friendId);
+      })
+    )
+  ).filter((user) => user != null) as User[];
+  await ChromeStorage.set("friends", friends);
+  friendShipListenerUnsubscribe?.();
+  friendShipListenerUnsubscribe = firestore.listenForFriendshipUpdates(
+    user.id,
+    async (friends) => {
+      await ChromeStorage.set("friends", friends);
+    },
+    async (friendRequests) => {
+      await ChromeStorage.set("friend-requests", friendRequests);
+    }
+  );
+  await ChromeStorage.set("user", user);
 };
 
-firebaseApp.listenForAuthUpdates(async (user) => {
-  try {
-    await ChromeStorage.set("user", user);
-    if (user) {
-      ChromeStorage.get("guesses").then((guesses) => {
-        if (guesses) {
-          firestore.updateGuesses(user.id, guesses);
-        }
-      });
-
-      const friends = (
-        await Promise.all(
-          user.friends.map((friendId) => {
-            return firestore.retrieveUser(friendId);
-          })
-        )
-      ).filter((user) => user != null) as User[];
-      await ChromeStorage.set("friends", friends);
-
-      friendShipListenerUnsubscribe = firestore.listenForFriendshipUpdates(
-        user.id,
-        async (updatedFriend) => {
-          const friends = await ChromeStorage.get("friends");
-          const updatedFriends = friends?.map((friend) => {
-            if (friend.id === updatedFriend.id) {
-              return updatedFriend;
-            } else {
-              return friend;
-            }
-          }) ?? [updatedFriend];
-          await ChromeStorage.set("friends", updatedFriends);
-        },
-        (friendRequests) => {
-          ChromeStorage.set("friend-requests", friendRequests);
-        }
-      );
-    } else {
-      friendShipListenerUnsubscribe?.();
-    }
-  } catch (e) {
-    Logging.error("Failed to handle auth change.", user, e);
-  }
-}, createUser);
-
 Messages.listen(async (message) => {
+  if (executionContext() !== ExecutionContext.BACKGROUND) {
+    return;
+  }
+  const user = firebaseApp.currentUser();
   try {
+    if (Messages.isListenToFriendsRequest(message)) {
+      if (user) {
+        await onSignIn(user);
+      }
+    }
     if (Messages.isLoginRequest(message)) {
+      try {
+        await onSignIn(user || (await firebaseApp.login()));
+      } catch (e) {
+        Logging.error("Login failed: ", e);
+        await ChromeStorage.set(
+          "login-failed-message",
+          "Error logging in. Please try again later."
+        );
+      }
       Messages.send(
         new GameInfoRequestMessage(),
         "nytimes.com/puzzles/spelling-bee"
       );
-      await firebaseApp.login();
     }
     if (Messages.isGuessesResponse(message)) {
-      await ChromeStorage.set("guesses", message.guesses);
-      const user: User | null = await ChromeStorage.get("user");
-      if (user) {
-        await firestore.updateGuesses(user.id, message.guesses);
+      // Check if guesses value has actually changed
+      const oldGuesses = await ChromeStorage.get("guesses");
+      if (
+        !oldGuesses ||
+        oldGuesses.id !== message.guesses.id ||
+        !(
+          oldGuesses.words.length === message.guesses.words.length &&
+          oldGuesses.words.every((word) => message.guesses.words.includes(word))
+        )
+      ) {
+        // If we are signed in, store it
+        if (user) {
+          await firestore.updateGuesses(user.id, message.guesses);
+        }
+        await ChromeStorage.set("guesses", message.guesses);
       }
     }
-    if (Messages.isGameInfoResponse(message)) {
+    if (Messages.isGameInfoResponse(message) && message.gameInfo) {
       await ChromeStorage.set("game-info", message.gameInfo);
     }
     if (Messages.isLogoutRequest(message)) {
-      await firebaseApp.logout();
+      friendShipListenerUnsubscribe?.();
       await ChromeStorage.set("user", null);
+      await firebaseApp.logout();
     }
     if (Messages.isGenerateFriendCodeRequest(message)) {
-      const user: User | null = await ChromeStorage.get("user");
       if (user) {
-        Logging.info("Generating friend code for user: ", user.id);
         const code = generateFriendCode(user.id);
-        Logging.info("Friend code: ", code);
         await firestore.addFriendCode(code);
         await ChromeStorage.set("friend-code", code);
       }
     }
     if (Messages.isAcceptFriendRequest(message)) {
-      const user: User | null = await ChromeStorage.get("user");
       if (user) {
         await firestore.acceptFriendRequest(message.id, user.id);
       }
     }
     if (Messages.isAddFriendRequest(message)) {
       try {
-        const user: User | null = await ChromeStorage.get("user");
         if (user) {
           const friend = await firestore.findFriend(message.code);
           if (friend) {
@@ -140,7 +136,6 @@ Messages.listen(async (message) => {
       }
     }
     if (Messages.isRemoveFriendRequest(message)) {
-      const user: User | null = await ChromeStorage.get("user");
       if (user) {
         await firestore.removeFriend(user.id, message.id);
       }
@@ -148,4 +143,29 @@ Messages.listen(async (message) => {
   } catch (e) {
     Logging.error("Failed to handle message: ", message, e);
   }
+});
+
+chrome.runtime.onSuspend.addListener(() => {
+  Logging.debug("Suspending...");
+  friendShipListenerUnsubscribe?.(); // stop listening for updates
+});
+
+chrome.runtime.onInstalled.addListener(async () => {
+  (chrome.runtime.getManifest().content_scripts ?? [])
+    .filter(
+      (cs): cs is { js: string[]; matches: string[] } => !!cs.js && !!cs.matches
+    )
+    .forEach((cs) => {
+      chrome.tabs.query({ url: cs.matches }).then((tabs) => {
+        tabs
+          .map((tab) => tab.id)
+          .filter((id): id is number => !!id)
+          .forEach((id) => {
+            chrome.scripting.executeScript({
+              target: { tabId: id },
+              files: cs.js,
+            });
+          });
+      });
+    });
 });
