@@ -41,10 +41,8 @@ const isInteractive = process.stdout.isTTY;
 // Warn and crash if required files are missing
 if (
   !checkRequiredFiles([
-    paths.popupHtml,
-    paths.popupIndexJs,
+    paths.appIndexJs,
     paths.backgroundIndexJs,
-    paths.contentIndexJs,
   ])
 ) {
   process.exit(1);
@@ -219,6 +217,5 @@ function build(previousFileSizes) {
 function copyPublicFolder() {
   fs.copySync(paths.appPublic, paths.appBuild, {
     dereference: true,
-    filter: (file) => file !== paths.popupHtml,
   });
 }

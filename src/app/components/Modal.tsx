@@ -1,10 +1,12 @@
 import { FC } from "react";
 import { createUseStyles } from "react-jss";
+import { Button } from "./Button";
+import { CloseIcon } from "./icons/CloseIcon";
 
 const useStyles = createUseStyles({
   root: {
     position: "fixed",
-    width: 480,
+    width: "100%",
     height: "100%",
     top: 0,
     left: 0,
@@ -16,38 +18,33 @@ const useStyles = createUseStyles({
   },
   modal: {
     width: "80%",
+    maxWidth: "480px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     background: "white",
     borderRadius: 4,
     boxShadow: "0 0 5px 5px rgba(0, 0, 0, 20%)",
-    zIndex: 100
+    zIndex: 100,
   },
   topBar: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 4,
+    padding: 16,
     borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
   },
   closeButton: {
-    background: "#4081f7",
-    outline: "none",
-    border: "none",
-    cursor: "pointer",
-    padding: "8px 16px",
-    borderRadius: 4,
-
-    "&:hover": {
-      background: "#3071e7",
-    },
-    "&:active": {
-      background: "#2061d7",
-    },
+    height: "3em",
+    width: "3em",
+    minWidth: "3em",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
   title: {
     fontSize: 18,
+    fontWeight: 700,
     paddingLeft: 8,
   },
 });
@@ -65,9 +62,11 @@ export const Modal: FC<ModalProps> = ({ close, title, children }) => {
       <div className={classes.modal} onClick={(e) => e.stopPropagation()}>
         <div className={classes.topBar}>
           <div className={classes.title}>{title}</div>
-          <button className={classes.closeButton} onClick={close}>
-            X
-          </button>
+          <Button className={classes.closeButton} onClick={close}>
+            <div>
+              <CloseIcon size={24} />
+            </div>
+          </Button>
         </div>
         {children}
       </div>

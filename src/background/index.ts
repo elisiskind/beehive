@@ -9,14 +9,7 @@ import { User } from "../lib/interfaces";
 import { generateFriendCode } from "./friends";
 import { Logging } from "../lib/logging";
 import { Unsubscribe } from "@firebase/firestore";
-import { Tabs } from "../lib/tabs";
 import { ExecutionContext, executionContext } from "../lib/utils";
-
-Tabs.onTab(
-  ["nytimes.com/puzzles/spelling-bee"],
-  Tabs.enableExtension,
-  Tabs.disableExtension
-);
 
 const firebaseApp = new FirebaseApp();
 const firestore = firebaseApp.getFirestore();
@@ -146,11 +139,17 @@ Messages.listen(async (message) => {
 });
 
 chrome.runtime.onSuspend.addListener(() => {
+  if (executionContext() !== ExecutionContext.BACKGROUND) {
+    return;
+  }
   Logging.debug("Suspending...");
   friendShipListenerUnsubscribe?.(); // stop listening for updates
 });
 
 chrome.runtime.onInstalled.addListener(async () => {
+  if (executionContext() !== ExecutionContext.BACKGROUND) {
+    return;
+  }
   (chrome.runtime.getManifest().content_scripts ?? [])
     .filter(
       (cs): cs is { js: string[]; matches: string[] } => !!cs.js && !!cs.matches

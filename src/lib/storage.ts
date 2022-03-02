@@ -27,35 +27,47 @@ type StorageType<K extends StorageKey> = K extends "user"
   ? string
   : never;
 
-
 export class ChromeStorage {
   private static async _setInternal<K extends StorageKey>(
     key: K,
-    value: null | StorageType<K>
+    value: null | StorageType<K>,
+    onError?: (e: Error) => void
   ): Promise<void> {
-    Logging.debug('[storage] Stored ' + key + ': ', value)
     const payload = { [key]: value };
-    await chrome.storage.sync.set(payload);
+    try {
+      await chrome.storage.sync.set(payload);
+      Logging.debug("[storage] Stored " + key + ": ", value);
+    } catch (e) {
+      if (onError) {
+        onError(e as Error);
+      } else {
+        Logging.warn("Failed to set {" + key + ": " + value + "}", e);
+      }
+    }
   }
 
   private static setFunctions: Partial<Record<StorageKey, NodeJS.Timeout>> = {};
 
-  static async set<K extends StorageKey>(
+  static set<K extends StorageKey>(
     key: K,
-    value: null | StorageType<K>
-  ): Promise<void> {
+    value: null | StorageType<K>,
+    onError?: (e: Error) => void
+  ): void {
     const oldTimeout = this.setFunctions[key];
     if (oldTimeout) {
       clearTimeout(oldTimeout);
     }
-    this.setFunctions[key] = setTimeout(() => this._setInternal(key, value), 100);
+    this.setFunctions[key] = setTimeout(
+      () => this._setInternal(key, value, onError),
+      100
+    );
   }
 
   static async get<K extends StorageKey>(
     key: K
   ): Promise<StorageType<K> | null> {
     const value = await chrome.storage.sync.get(key);
-    Logging.debug('[storage] Retrieved ' + key + ': ', value)
+    Logging.debug("[storage] Retrieved " + key + ": ", value);
     if (value[key]) {
       return value[key] as StorageType<K>;
     } else {
@@ -70,7 +82,10 @@ export class ChromeStorage {
     if (chrome?.storage?.onChanged) {
       const listener = (changes: { [x: string]: StorageChange }) => {
         if (changes[key]) {
-          Logging.debug('[storage] Update for key ' + key + ': ', changes[key].newValue)
+          Logging.debug(
+            "[storage] Update for key " + key + ": ",
+            changes[key].newValue
+          );
           onChange(changes[key].newValue);
         }
       };

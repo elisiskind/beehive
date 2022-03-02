@@ -1,5 +1,6 @@
 import { createUseStyles } from "react-jss";
 import { Rank, rankRanking } from "../../lib/interfaces";
+import { HiveIcon } from "../components/icons/HiveIcon";
 
 const skew = (color?: string) => {
   return {
@@ -38,9 +39,9 @@ const useStyles = createUseStyles({
   inner: {
     transform: "skewX(30deg)",
     padding: "4px 8px",
-    display: 'flex',
+    display: "flex",
     gap: 4,
-    alignItems: "center"
+    alignItems: "center",
   },
   score: {
     padding: "4px 8px 4px 16px",
@@ -76,15 +77,7 @@ export const FriendPill = ({
     <div className={classes.root}>
       <div className={classes.skew1}>
         <div className={classes.inner}>
-            {pangram ? (
-              <img
-                src={"images/icon_24dp.svg"}
-                className={classes.pangram}
-                alt={"pangram"}
-              />
-            ) : (
-              <></>
-            )}
+          {pangram ? <HiveIcon size={16} /> : <></>}
           <span>{rank}</span>
         </div>
       </div>

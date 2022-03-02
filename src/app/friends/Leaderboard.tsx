@@ -17,8 +17,6 @@ const useStyles = createUseStyles({
     padding: 16,
     gap: 16,
     justifyContent: "flex-start",
-    height: "calc(300px - 32px)",
-    overflowY: "auto",
   },
   friendRequests: {
     padding: 16,

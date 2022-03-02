@@ -63,6 +63,7 @@ const useStyles = createUseStyles({
   },
   infoTitle: {
     fontWeight: "bold",
+    paddingBottom: 4
   },
   removeFriendButtonContainer: {
     textAlign: "center",
@@ -70,6 +71,8 @@ const useStyles = createUseStyles({
   },
   removeFriendButton: {
     background: "none",
+    outline: 'none',
+    border: 'none',
     color: "#555",
     paddingTop: 16,
     "&:hover": {
@@ -242,7 +245,7 @@ export const FriendInfo = ({
         <div className={classes.bar}>
           <div className={classes.profileInfo}>
             <img className={classes.profile} src={photo} alt={"profile"} />
-            <div>{name}</div>
+            <div>{name}{isMe ? '' : ' (you)'}</div>
           </div>
           <FriendPill
             rank={rank}

@@ -21,14 +21,23 @@ const useStyles = createUseStyles({
   row: {
     display: "flex",
     gap: 8,
+    alignItems: "center",
+    paddingTop: 4
   },
   input: {
+    textTransform: "uppercase",
+    fontWeight: 700,
+    letterSpacing: ".5px",
+    textRendering: "optimizeLegibility",
+    lineHeight: 1.25,
+    height: "1.25em",
+    fontSize: "2em",
+    paddingTop: "2px",
     textAlign: "center",
-    flex: 1,
-    borderRadius: 4,
-    outline: "none",
-    border: "1px solid #d0d0d0",
-    height: 37,
+    width: '100%',
+    outline: 'none',
+    border: 'none',
+    background: '#eee'
   },
   error: {
     color: "#D74030",

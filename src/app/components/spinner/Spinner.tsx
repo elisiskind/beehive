@@ -3,8 +3,8 @@ import { createUseStyles } from "react-jss";
 
 const useStyles = createUseStyles({
   root: {
-    height: 360,
-    width: 480,
+    height: '100%',
+    width: '100%',
     overflow: "hidden"
   }
 })
