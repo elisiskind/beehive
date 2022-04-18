@@ -4,9 +4,8 @@ import { DataContext } from "../storage/DataProvider";
 import { Button } from "../components/Button";
 import { LeaderBoardFriend } from "./Leaderboard";
 import { Modal } from "../components/Modal";
-import { Logging } from "../../lib/logging";
-import { Messages, RemoveFriendRequestMessage } from "../../lib/messaging";
 import { FriendPill } from "./FriendPill";
+import { RemoveFriendModal } from "./RemoveFriendModal";
 
 interface StyleProps {
   expanded: boolean;
@@ -19,11 +18,11 @@ const useStyles = createUseStyles({
     flexDirection: "column",
     padding: 16,
     transition: "gap 0.2s ease-in-out",
-    cursor:  "pointer",
+    cursor: "pointer",
     borderRadius: 8,
 
     "&:hover": {
-      background:  "#efefef"
+      background: "#efefef",
     },
   },
   bar: {
@@ -63,7 +62,7 @@ const useStyles = createUseStyles({
   },
   infoTitle: {
     fontWeight: "bold",
-    paddingBottom: 4
+    paddingBottom: 4,
   },
   removeFriendButtonContainer: {
     textAlign: "center",
@@ -71,8 +70,8 @@ const useStyles = createUseStyles({
   },
   removeFriendButton: {
     background: "none",
-    outline: 'none',
-    border: 'none',
+    outline: "none",
+    border: "none",
     color: "#555",
     paddingTop: 16,
     "&:hover": {
@@ -83,17 +82,6 @@ const useStyles = createUseStyles({
       textDecoration: "underline",
       background: "none",
     },
-  },
-  modalContent: {
-    display: "flex",
-    flexDirection: "column",
-    padding: 16,
-    gap: 16,
-  },
-  modalButtons: {
-    display: "flex",
-    gap: 16,
-    justifyContent: "center",
   },
 });
 
@@ -207,45 +195,36 @@ export const FriendInfo = ({
     </div>
   );
 
-  // noinspection PointlessBooleanExpressionJS
   return (
     <>
       {showRemoveModal ? (
         <Modal close={() => setShowRemoveModal(false)} title={"Remove Friend"}>
-          <div className={classes.modalContent}>
-            <div>Are you sure you want to remove {name ?? "this friend"}?</div>
-            <div className={classes.modalButtons}>
-              <span>
-                <Button
-                  onClick={() => {
-                    Messages.send(new RemoveFriendRequestMessage(id));
-                    Logging.info("Removing friend");
-                    setShowRemoveModal(false);
-                    setActive(null);
-                  }}
-                >
-                  Yes
-                </Button>
-              </span>
-              <span>
-                <Button onClick={() => setShowRemoveModal(false)}>
-                  Cancel
-                </Button>
-              </span>
-            </div>
-          </div>
+          <RemoveFriendModal
+            name={name}
+            id={id}
+            cancel={() => {
+              setShowRemoveModal(false);
+            }}
+            onRemove={() => {
+              setShowRemoveModal(false);
+              setActive(null);
+            }}
+          />
         </Modal>
       ) : (
         <></>
       )}
       <div
         className={classes.root}
-        onClick={() => (setActive(active ? null : id))}
+        onClick={() => setActive(active ? null : id)}
       >
         <div className={classes.bar}>
           <div className={classes.profileInfo}>
             <img className={classes.profile} src={photo} alt={"profile"} />
-            <div>{name}{isMe ? '' : ' (you)'}</div>
+            <div>
+              {name}
+              {isMe ? " (you)" : ""}
+            </div>
           </div>
           <FriendPill
             rank={rank}

@@ -8,8 +8,8 @@ import {
   onSnapshot,
   setDoc,
 } from "firebase/firestore";
-import { FriendCode, Guesses, User } from "../lib/interfaces";
-import { Logging } from "../lib/logging";
+import { FriendCode, Guesses, User } from "../../lib/interfaces";
+import { Logging } from "../../lib/logging";
 import { Friends } from "./friends";
 import {
   DocumentReference,

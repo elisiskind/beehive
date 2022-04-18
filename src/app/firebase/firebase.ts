@@ -9,7 +9,7 @@ import {
   initializeApp,
 } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { User } from "../lib/interfaces";
+import { User } from "../../lib/interfaces";
 import { Firestore } from "./firestore";
 
 const createUser = (firebaseUser: FirebaseUser): User => {
@@ -44,26 +44,10 @@ export class FirebaseApp {
 
   getFirestore = () => this._firestore;
 
-  login = () => {
-    return new Promise<User>((resolve, reject) => {
-      chrome.identity.getAuthToken({ interactive: true }, (token) => {
-        const credential = GoogleAuthProvider.credential(null, token);
-        signInWithCredential(getAuth(), credential)
-          .then((value) => resolve(this._onSignIn(value.user)))
-          .catch(() => {
-            chrome.identity.clearAllCachedAuthTokens(() => {
-              chrome.identity.getAuthToken({ interactive: true }, (token) => {
-                const credential = GoogleAuthProvider.credential(null, token);
-                signInWithCredential(getAuth(), credential)
-                  .then((value) => resolve(this._onSignIn(value.user)))
-                  .catch((e) => {
-                    reject("Failed to sign in: " + e);
-                  });
-              });
-            });
-          });
-      });
-    });
+  login = async (token: string) => {
+    const credential = await GoogleAuthProvider.credential(null, token);
+    const value = await signInWithCredential(getAuth(), credential);
+    return await this._onSignIn(value.user);
   };
 
   logout = async () => {

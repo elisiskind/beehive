@@ -1,8 +1,12 @@
 .sb-wordlist-box {
     height: 100% !important;
-    overflow-y: auto !important;
+    overflow-y: hidden !important;
 }
 
 .sb-status-box {
     height: 80% !important;
+}
+
+.sb-modal-wrapper, .sb-modal-scrim {
+    z-index: 5 !important;
 }

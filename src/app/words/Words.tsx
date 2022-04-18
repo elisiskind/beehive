@@ -2,11 +2,10 @@ import { useContext } from "react";
 import { GameInfoContext } from "../storage/GameInfoProvider";
 
 export const Words = () => {
-  const { guesses, gameInfo, error } = useContext(GameInfoContext);
+  const { guesses: {words: guesses}, gameInfo, error } = useContext(GameInfoContext);
 
   if (error) {
-    return <>
-    </>
+    return <></>;
   }
 
   return (
@@ -29,19 +28,7 @@ export const Words = () => {
               return (
                 <li>
                   <span className={"sb-anagram"}>
-                    {Array.from(guess).map((letter, index) => {
-                      const casedLetter =
-                        index === 0
-                          ? letter.toUpperCase()
-                          : letter.toLowerCase();
-                      return letter === gameInfo?.centerLetter ? (
-                        <span>
-                          <span className="sb-anagram-key">{casedLetter}</span>
-                        </span>
-                      ) : (
-                        <>{casedLetter}</>
-                      );
-                    })}
+                   {guess}
                   </span>
                 </li>
               );

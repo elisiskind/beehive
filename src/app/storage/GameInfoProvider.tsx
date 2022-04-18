@@ -6,21 +6,18 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { ChromeStorage } from "../../lib/storage";
 import { isExpired } from "../../lib/utils";
 import { Logging } from "../../lib/logging";
+import { Spinner } from "../components/spinner";
 
 interface GameInfoData {
   error: boolean;
   gameInfo: GameInfo | null;
-  guesses: string[];
+  guesses: Guesses;
+  refreshGameInfo: () => void;
 }
 
-export const GameInfoContext = createContext<GameInfoData>({
-  error: false,
-  guesses: [],
-  gameInfo: null,
-});
+export const GameInfoContext = createContext<GameInfoData>({} as GameInfoData);
 
 const extractGameInfo = (): GameInfo => {
   const prefix = "window.gameData = ";
@@ -97,7 +94,6 @@ export const GameInfoProvider: React.FC = ({ children }) => {
       const gameInfo = extractGameInfo();
       setGameInfo(gameInfo);
       setError(false);
-      ChromeStorage.set("game-info", gameInfo);
     } catch (e) {
       setError(true);
       Logging.error("Failed to set game info.");
@@ -105,29 +101,31 @@ export const GameInfoProvider: React.FC = ({ children }) => {
   }, []);
 
   const saveGuesses = useCallback(
-    (guesses: Guesses | null) => {
-      setGuesses(guesses);
-      ChromeStorage.set("guesses", guesses, (error) => {
-        if (error.message.includes("Extension context invalidated")) {
-          unsubscribeGuessesRef.current();
-        } else {
-          Logging.warn("Error saving guesses to Chrome storage: ", error);
-        }
-      });
+    (newGuesses: Guesses | null) => {
+      if (!guesses ||
+      guesses.id !== newGuesses?.id ||
+      !(
+        guesses.words.length === newGuesses.words.length &&
+        guesses.words.every((word) => newGuesses.words.includes(word))
+      )) {
+        setGuesses(newGuesses);
+      }
     },
-    [unsubscribeGuessesRef]
+    [unsubscribeGuessesRef, guesses]
   );
-
-  // Initialize from Chrome Storage
-  useEffect(() => {
-    ChromeStorage.get("guesses").then(setGuesses);
-    ChromeStorage.get("game-info").then(setGameInfo);
-  }, []);
 
   useEffect(() => {
     const unsub = listenForUserInput(saveGuesses);
     unsubscribeGuessesRef.current = unsub;
     return unsub;
+  }, []);
+
+  useEffect(() => {
+    extractGuesses().then(saveGuesses);
+    if (!gameInfo || isExpired(gameInfo)) {
+      Logging.info("Extracting game info.");
+      extractAndSetGameInfo();
+    }
   }, []);
 
   useEffect(() => {
@@ -137,12 +135,19 @@ export const GameInfoProvider: React.FC = ({ children }) => {
     }
   }, []);
 
+  if (!gameInfo) {
+    return <Spinner/>
+  }
+
   const todaysGuesses =
-    guesses && gameInfo && guesses.id === gameInfo.id ? guesses.words : [];
+    {
+      id: gameInfo.id,
+      words: guesses && guesses.id === gameInfo.id ? guesses.words : []
+    }
 
   return (
     <GameInfoContext.Provider
-      value={{ gameInfo, error, guesses: todaysGuesses }}
+      value={{ gameInfo, error, guesses: todaysGuesses, refreshGameInfo: extractAndSetGameInfo }}
     >
       {children}
     </GameInfoContext.Provider>

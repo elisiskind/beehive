@@ -3,13 +3,9 @@ import { Button } from "../components/Button";
 import { useContext, useEffect, useRef, useState } from "react";
 import { DataContext } from "../storage/DataProvider";
 import { isExpired } from "../../lib/utils";
-import {
-  AddFriendRequestMessage,
-  GenerateFriendCodeRequestMessage,
-  Messages,
-} from "../../lib/messaging";
 import { Spinner } from "../components/spinner";
 import { Modal } from "../components/Modal";
+import { Logging } from "../../lib/logging";
 
 const useStyles = createUseStyles({
   content: {
@@ -22,7 +18,7 @@ const useStyles = createUseStyles({
     display: "flex",
     gap: 8,
     alignItems: "center",
-    paddingTop: 4
+    paddingTop: 4,
   },
   input: {
     textTransform: "uppercase",
@@ -34,10 +30,10 @@ const useStyles = createUseStyles({
     fontSize: "2em",
     paddingTop: "2px",
     textAlign: "center",
-    width: '100%',
-    outline: 'none',
-    border: 'none',
-    background: '#eee'
+    width: "100%",
+    outline: "none",
+    border: "none",
+    background: "#eee",
   },
   error: {
     color: "#D74030",
@@ -61,7 +57,10 @@ interface AddFriendProps {
 export const AddFriend = ({ close }: AddFriendProps) => {
   const classes = useStyles();
 
-  const { friendCode } = useContext(DataContext);
+  const {
+    friendCode,
+    mutations: { requestFriendCode, addFriend },
+  } = useContext(DataContext);
   const loading = !friendCode || isExpired(friendCode);
   const [codeToAdd, setCodeToAdd] = useState<string | null>("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,28 +68,22 @@ export const AddFriend = ({ close }: AddFriendProps) => {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (loading) {
-      Messages.send(new GenerateFriendCodeRequestMessage());
+    if (!friendCode) {
+      requestFriendCode();
     }
-  }, [loading]);
+  }, [friendCode]);
 
-  useEffect(() => {
-    return Messages.listen((resp) => {
-      if (Messages.isAddFriendResponse(resp)) {
-        if (resp.name) {
-          setMessage("Added " + resp.name);
-        } else {
-          setError("Invalid code.");
-        }
-      }
-    });
-  }, []);
-
-  const add = () => {
+  const add = async () => {
     const code = codeToAdd;
     if (code) {
       setCodeToAdd(null);
-      Messages.send(new AddFriendRequestMessage(code));
+      try {
+        const resp = await addFriend(code);
+        setMessage(`Added ${resp}`);
+      } catch (e) {
+        setError("Invalid code.");
+        Logging.error(`Failed to add friend for ${code}`, e);
+      }
     }
   };
 

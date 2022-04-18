@@ -4,7 +4,6 @@ import { User } from "../../lib/interfaces";
 import { Button } from "./Button";
 import { Tab } from "../App";
 import { BackIcon } from "./icons/BackIcon";
-import { LogoutRequestMessage, Messages } from "../../lib/messaging";
 
 const useStyles = createUseStyles({
   infoBar: {
@@ -79,6 +78,7 @@ interface LoggedInNavBarProps {
   tab: Tab;
   setTab: (tab: Tab) => void;
   user: User;
+  logout: () => Promise<void>
 }
 
 interface LoggedOutNavBarProps {
@@ -160,7 +160,7 @@ export const NavBar = (props: LoggedInNavBarProps | LoggedOutNavBarProps) => {
                 <div className={classes.dropdownItem}>
                   <Button
                     buttonType={"square"}
-                    onClick={() => Messages.send(new LogoutRequestMessage())}
+                    onClick={props.logout}
                     className={classes.logoutButton}
                   >
                     Logout

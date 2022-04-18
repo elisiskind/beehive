@@ -9,8 +9,8 @@ const useStyles = createUseStyles({
     height: 300,
     display: "flex",
     flexDirection: "column",
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     gap: 4,
   },
   grid: {
@@ -25,13 +25,17 @@ const useStyles = createUseStyles({
   },
 });
 
+const sortNumeric = (a: string, b: string) => {
+  return parseInt(a) - parseInt(b);
+};
+
 export const Grid = () => {
   const classes = useStyles();
   const { grid } = useContext(DataContext);
 
   const possibleWordLengths = Array.from(
     new Set(Object.values(grid ?? {}).flatMap((map) => Object.keys(map)))
-  ).sort();
+  ).sort(sortNumeric);
 
   if (!grid) {
     return <div className={classes.row}>Loading...</div>;
@@ -44,23 +48,25 @@ export const Grid = () => {
     <Cell bold>Σ</Cell>,
   ];
 
-  const body = Object.keys(grid).map((letter) => {
-    return (
-      <div className={classes.row} key={letter}>
-        <Cell bold>{letter}</Cell>
-        {possibleWordLengths.map((length) => {
-          return (
-            <Cell key={length}>{grid[letter][parseInt(length)] ?? "-"}</Cell>
-          );
-        })}
-        <Cell bold>
-          {Object.values(grid[letter])
-            .map((val) => (isNaN(val) ? 0 : val))
-            .reduce((a, b) => a + b, 0)}
-        </Cell>
-      </div>
-    );
-  });
+  const body = Object.keys(grid)
+    .sort()
+    .map((letter) => {
+      return (
+        <div className={classes.row} key={letter}>
+          <Cell bold>{letter}</Cell>
+          {possibleWordLengths.map((length) => {
+            return (
+              <Cell key={length}>{grid[letter][parseInt(length)] ?? "-"}</Cell>
+            );
+          })}
+          <Cell bold>
+            {Object.values(grid[letter])
+              .map((val) => (isNaN(val) ? 0 : val))
+              .reduce((a, b) => a + b, 0)}
+          </Cell>
+        </div>
+      );
+    });
 
   const totals: { [key: string]: number } = {};
   Object.values(grid).forEach((entry) =>
@@ -77,7 +83,7 @@ export const Grid = () => {
     <div className={classes.row}>
       <Cell>Σ</Cell>
       {Object.entries(totals)
-        .sort()
+        .sort(([a], [b]) => sortNumeric(a, b))
         .map(([, value]) => (
           <Cell bold>{value}</Cell>
         ))}

@@ -1,5 +1,5 @@
-import { FriendCode, User } from "../lib/interfaces";
-import { Logging } from "../lib/logging";
+import { FriendCode, User } from "../../lib/interfaces";
+import { Logging } from "../../lib/logging";
 
 export const generateFriendCode = (userId: string): FriendCode => {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

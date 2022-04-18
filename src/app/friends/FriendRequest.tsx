@@ -1,7 +1,8 @@
 import { User } from "../../lib/interfaces";
 import { createUseStyles } from "react-jss";
 import { Button } from "../components/Button";
-import { AcceptFriendRequestMessage, Messages } from "../../lib/messaging";
+import { useContext } from "react";
+import { DataContext } from "../storage/DataProvider";
 
 const useStyles = createUseStyles({
   root: {
@@ -31,6 +32,9 @@ interface FriendRequestProps {
 
 export const FriendRequest = ({ user }: FriendRequestProps) => {
   const classes = useStyles();
+  const {
+    mutations: { acceptFriendRequest },
+  } = useContext(DataContext);
 
   return (
     <div className={classes.root}>
@@ -38,11 +42,7 @@ export const FriendRequest = ({ user }: FriendRequestProps) => {
         <img className={classes.profile} src={user.photo} alt={"profile"} />
         <div>{user.name}</div>
       </div>
-      <Button
-        onClick={() => Messages.send(new AcceptFriendRequestMessage(user.id))}
-      >
-        Accept
-      </Button>
+      <Button onClick={() => acceptFriendRequest(user.id)}>Accept</Button>
     </div>
   );
 };

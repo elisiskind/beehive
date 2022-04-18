@@ -44,12 +44,20 @@ const App = () => {
 const Content = () => {
   const classes = useStyles();
 
-  const { user } = useContext(DataContext);
+  const {
+    user,
+    mutations: { logout },
+  } = useContext(DataContext);
   const [activeTab, setActiveTab] = useState<Tab>("Home");
 
   return (
     <div className={classes.root}>
-      <NavBar user={user} tab={activeTab} setTab={setActiveTab} />
+      <NavBar
+        user={user}
+        tab={activeTab}
+        setTab={setActiveTab}
+        logout={logout}
+      />
       <div className={classes.content}>
         <Slide left={true} enter={activeTab === "Home"}>
           <Words />

@@ -10,7 +10,7 @@ const useStyles = createUseStyles({
     height: "100%",
     top: 0,
     left: 0,
-    zIndex: 99,
+    zIndex: 5,
     background: "rgba(0,0,0,0.5)",
     display: "flex",
     alignItems: "center",

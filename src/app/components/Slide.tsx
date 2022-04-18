@@ -11,6 +11,8 @@ const useStyles = createUseStyles({
     position: "absolute",
     height: '100%',
     width: '100%',
+    zIndex: ({ enter }: SlideProps) => enter ? 4 : 1,
+    transition: 'z-index 1s ease-out',
   },
   slide: {
     width: '100%',
