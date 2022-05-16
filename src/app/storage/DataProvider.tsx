@@ -14,20 +14,27 @@ import { FriendCode, GameInfo, User } from "../../lib/interfaces";
 import { isExpired } from "../../lib/utils";
 import { GameInfoContext } from "./GameInfoProvider";
 import { NavBar } from "../components/NavBar";
-import { Words } from "../words/Words";
 import { firebaseApp, firestore } from "../index";
 import { Logging } from "../../lib/logging";
 import { Unsubscribe } from "@firebase/firestore";
 import { generateFriendCode } from "../firebase/friends";
-import { AuthRequest, Messages } from "../../lib/messaging";
+import { AuthRefreshRequest, AuthRequest, Messages } from "../../lib/messaging";
 
 const useStyles = createUseStyles({
   rootLoading: {
-    height: "100%",
+    position: "relative",
     width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
+  },
+  loading: {
+    position: "absolute",
+    height: "calc(var(--vh, 1vh) * 64 + 60px);",
+    width: "100%",
+    visibility: ({ on }: StyleProps) => (on ? "visible" : "hidden"),
+    transition: "visibility 0.3s ease-out, opacity 0.3s ease-in-out",
+    background: "white",
+    opacity: ({ on }: StyleProps) => (on ? 1 : 0),
+    zIndex: 1,
+    overflow: "hidden",
   },
   root: {
     height: "100%",
@@ -36,6 +43,36 @@ const useStyles = createUseStyles({
     flexDirection: "column",
   },
 });
+
+const getToken = async (interactive: boolean) => {
+  const response = await Messages.send(new AuthRequest(interactive));
+  if (Messages.isAuthResponse(response)) {
+    return response.token;
+  } else if (Messages.isAuthFailure(response)) {
+    throw new Error(response.error);
+  } else {
+    throw new Error(
+      `Unrecognized response: ${JSON.stringify(response, null, "  ")}`
+    );
+  }
+};
+
+const refreshToken = async (interactive: boolean) => {
+  const response = await Messages.send(new AuthRefreshRequest(interactive));
+  if (Messages.isAuthResponse(response)) {
+    return response.token;
+  } else if (Messages.isAuthFailure(response)) {
+    throw new Error(response.error);
+  } else {
+    throw new Error(
+      `Unrecognized response: ${JSON.stringify(response, null, "  ")}`
+    );
+  }
+};
+
+interface StyleProps {
+  on: boolean;
+}
 
 export interface Data {
   grid: GridData | null;
@@ -57,26 +94,22 @@ export interface Data {
 export const DataContext = createContext<Data>({} as Data);
 
 export const DataProvider: FunctionComponent = ({ children }) => {
-  const classes = useStyles();
+  const { guesses, gameInfo, refreshGameInfo } = useContext(GameInfoContext);
 
-  const { guesses, gameInfo, error, refreshGameInfo } =
-    useContext(GameInfoContext);
-
-  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [loggedIn, setLoggedIn] = useState<boolean>();
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [friendCode, setFriendCode] = useState<FriendCode | null>(null);
   const [user, setUser] = useState<User | null>(null);
+
   const [friends, setFriends] = useState<User[] | null>(null);
   const [friendRequests, setFriendRequests] = useState<User[] | null>(null);
-  const [loginFailedMessage, setLoginFailedMessage] = useState<string>();
   const friendShipListenerUnsubscribe = useRef<Unsubscribe | null>(null);
 
-  const onSignIn = useCallback(
-    async (loggedInUser: User) => {
-      setUser(loggedInUser);
-    },
-    [guesses]
-  );
+  useEffect(() => {
+    chrome.storage.local.get("loggedIn").then(({ loggedIn: loggedInValue }) => {
+      setLoggedIn(loggedInValue);
+    });
+  }, []);
 
   const acceptFriendRequest = useCallback(
     async (friendId: string) => {
@@ -125,59 +158,34 @@ export const DataProvider: FunctionComponent = ({ children }) => {
     }
   }, [user]);
 
-  const login = useCallback(async () => {
+  const login = useCallback(async (interactive: boolean) => {
     setAuthLoading(true);
     try {
-      Messages.send(new AuthRequest());
+      const token = await getToken(interactive);
+      setUser(await firebaseApp.login(token));
+      await chrome.storage.local.set({ loggedIn: true });
     } catch (e) {
-      Logging.error("Failed to send auth request: ", e);
-    }
-  }, [user]);
-
-  const logout = useCallback(async () => {
-    friendShipListenerUnsubscribe.current?.();
-    setUser(null);
-    setAuthToken(null);
-    await firebaseApp.logout();
-  }, [friendShipListenerUnsubscribe]);
-
-  useEffect(() => {
-      if (!user) {
-        Messages.send(new AuthRequest(true))
-      }
-    }, [user]);
-
-  // Initialize user from firebase
-  useEffect(() => {
-    setUser(firebaseApp.currentUser());
-  }, []);
-
-  // Listen for token response
-  useEffect(() => {
-    return Messages.listen((message) => {
-      if (Messages.isAuthResponse(message)) {
-        if (message.token) {
-          setAuthToken(message.token);
-        } else {
-          setLoginFailedMessage("Login failed.");
+      if (JSON.stringify(e).includes("FirebaseError")) {
+        try {
+          Logging.info('Refreshing auth token.')
+          const token = await refreshToken(interactive);
+          setUser(await firebaseApp.login(token));
+          await chrome.storage.local.set({ loggedIn: true });
+        } catch (e) {
+          Logging.error("Auth refresh failed: ", e);
         }
+      } else {
+        Logging.error("Login failed: ", e);
       }
-      return Promise.resolve();
-    });
+    } finally {
+      setAuthLoading(false);
+    }
   }, []);
 
-  // Attempt sign in once token is received
-  useEffect(() => {
-    if (authToken) {
-      firebaseApp
-        .login(authToken)
-        .then(onSignIn)
-        .catch((e) => {
-          Logging.error("Login failed: ", e);
-          setLoginFailedMessage("Error logging in. Please try again later.");
-        });
-    }
-  }, [authToken]);
+  const logout = async () => {
+    setUser(null);
+    await chrome.storage.local.set({ loggedIn: false });
+  };
 
   useEffect(() => {
     refreshGameInfo();
@@ -205,58 +213,63 @@ export const DataProvider: FunctionComponent = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      firestore.updateGuesses(user.id, guesses).catch((e) => {
+      firestore.updateGuesses(user.id, guesses).catch(() => {
         Logging.error("Failed to update guesses in Firestore.");
       });
     }
   }, [guesses]);
 
-  if (!user && !authLoading) {
-    return (
-      <div className={classes.root}>
-        <NavBar login={login} />
-        <Words />
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (loggedIn === true && !user) {
+      login(false);
+    }
+  }, [loggedIn]);
 
-  if (!gameInfo || authLoading || !user) {
-    return (
-      <div className={classes.rootLoading}>
-        <Spinner />
-      </div>
-    );
-  }
+  const classes = useStyles({ on: !gameInfo || authLoading });
 
-  const generateGrid = () => {
-    if (isExpired(gameInfo)) {
+  const generateGrid = (info: GameInfo) => {
+    if (isExpired(info)) {
       return null;
     } else {
-      return generateGridMap(gameInfo.answers, guesses.words);
+      return generateGridMap(info.answers, guesses.words);
     }
   };
 
   return (
-    <DataContext.Provider
-      value={{
-        grid: generateGrid(),
-        gameInfo,
-        guesses: guesses.words,
-        user,
-        friendCode,
-        friends: friends ?? [],
-        friendRequests: friendRequests ?? [],
-        mutations: {
-          addFriend,
-          requestFriendCode: requestFriendCode,
-          logout,
-          acceptFriendRequest,
-          removeFriendRequest,
-        },
-      }}
-    >
-      {children}
-    </DataContext.Provider>
+    <>
+      <div className={classes.rootLoading}>
+        <div className={classes.loading}>
+          <Spinner />
+        </div>
+      </div>
+      {!user && !authLoading && (
+        <div className={classes.root}>
+          <NavBar login={() => login(true)} />
+        </div>
+      )}
+      {!(!gameInfo || authLoading || !user) && (
+        <DataContext.Provider
+          value={{
+            grid: generateGrid(gameInfo),
+            gameInfo,
+            guesses: guesses.words,
+            user,
+            friendCode,
+            friends: friends ?? [],
+            friendRequests: friendRequests ?? [],
+            mutations: {
+              addFriend,
+              requestFriendCode: requestFriendCode,
+              logout,
+              acceptFriendRequest,
+              removeFriendRequest,
+            },
+          }}
+        >
+          {children}
+        </DataContext.Provider>
+      )}
+    </>
   );
 };
 

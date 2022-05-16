@@ -9,7 +9,7 @@ enum Loglevel {
 }
 
 export class Logging {
-  private static _logLevel = Loglevel.DEBUG;
+  private static _logLevel = Loglevel.NONE;
 
   static debug = (msg: any, ...more: any[]) => {
     if (Logging._logLevel >= 4) {

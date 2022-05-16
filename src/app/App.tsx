@@ -2,11 +2,10 @@ import React, { useContext, useState } from "react";
 import DataProvider, { DataContext } from "./storage/DataProvider";
 import { createUseStyles } from "react-jss";
 import { Slide } from "./components/Slide";
-import { Grid } from "./hints/Grid";
 import { Leaderboard } from "./friends/Leaderboard";
 import { NavBar } from "./components/NavBar";
-import { Words } from "./words/Words";
 import { GameInfoProvider } from "./storage/GameInfoProvider";
+import { Hints } from "./hints/Hints";
 
 export type Tab = "Hints" | "Leaderboard" | "Home";
 
@@ -59,11 +58,8 @@ const Content = () => {
         logout={logout}
       />
       <div className={classes.content}>
-        <Slide left={true} enter={activeTab === "Home"}>
-          <Words />
-        </Slide>
         <Slide enter={activeTab === "Hints"}>
-          <Grid />
+          <Hints />
         </Slide>
         <Slide enter={activeTab === "Leaderboard"}>
           <Leaderboard />

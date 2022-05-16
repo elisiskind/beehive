@@ -1,33 +1,60 @@
 import { ExecutionContext, executionContext } from "../lib/utils";
-import { AuthResponse, Messages } from "../lib/messaging";
-import { Logging } from "../lib/logging";
+import { AuthFailure, AuthResponse, Messages } from "../lib/messaging";
 
-const SPELLING_BEE_URL = "nytimes.com/puzzles/spelling-bee";
-
-Messages.listen( (message) => {
-  return new Promise((resolve) => {
-    if (executionContext() !== ExecutionContext.BACKGROUND) {
-      return resolve();
-    }
-
-    if (Messages.isAuthRequest(message)) {
-      chrome.identity.getAuthToken({ interactive: true }, (token) => {
+const getToken = (interactive: boolean): Promise<string> => {
+  return new Promise<string>((resolve, reject) => {
+      chrome.identity.getAuthToken({ interactive }, (token) => {
         if (!token) {
-          chrome.identity.clearAllCachedAuthTokens(() => {
-            chrome.identity.getAuthToken({ interactive: !message.silent }, (token) => {
-              if (!token) {
-                Logging.error("Auth failed, token is null.");
-              }
-              Messages.sendToPage(new AuthResponse(token), SPELLING_BEE_URL).then(resolve);
-            });
-          });
+          if (!chrome.runtime.lastError?.message?.includes('The user did not approve access')) {
+            refreshToken(interactive).then(resolve).catch(reject);
+          } else {
+            reject(chrome.runtime.lastError?.message)
+          }
         } else {
-          Messages.sendToPage(new AuthResponse(token), SPELLING_BEE_URL).then(resolve);
+          resolve(token);
         }
       });
-    }
   });
-});
+};
+
+const refreshToken = (interactive: boolean) => {
+  return new Promise<string>((resolve, reject) => {
+    chrome.identity.clearAllCachedAuthTokens(() => {
+      if (interactive) {
+        chrome.identity.getAuthToken({ interactive }, (token) => {
+          if (!token) {
+            reject("Auth failed, token is null.");
+          } else {
+            resolve(token);
+          }
+        });
+      } else {
+        reject('No token')
+      }
+    });
+  })
+}
+
+if (executionContext() === ExecutionContext.BACKGROUND) {
+  console.log('listening for messages')
+  Messages.listen(async (message) => {
+    if (Messages.isAuthRequest(message)) {
+      try {
+        const token = await getToken(message.interactive);
+        return new AuthResponse(token);
+      } catch (e) {
+        return new AuthFailure(e);
+      }
+    } else if (Messages.isAuthRefreshRequest(message)) {
+      try {
+        const token = await refreshToken(message.interactive);
+        return new AuthResponse(token);
+      } catch (e) {
+        return new AuthFailure(e);
+      }
+    }
+  })
+}
 
 chrome.runtime.onInstalled.addListener(async () => {
   if (executionContext() !== ExecutionContext.BACKGROUND) {
