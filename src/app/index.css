@@ -1,0 +1,4 @@
+
+.sb-modal-wrapper, .sb-modal-scrim {
+    z-index: 5 !important;
+}

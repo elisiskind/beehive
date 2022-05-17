@@ -12,10 +12,13 @@ export enum Rank {
 }
 
 // @ts-ignore
-export const rankRanking: Record<Rank, number> = Object.values(Rank).reduce((prev: Record<Rank, number>, r: Rank, index) => {
+export const rankRanking: Record<Rank, number> = Object.values(Rank).reduce(
+  (prev: Record<Rank, number>, r: Rank, index) => {
     prev[r] = index;
     return prev;
-  }, {});
+  },
+  {}
+);
 
 export type Ranks = [Rank, number][];
 
