@@ -16,7 +16,15 @@ const useStyles = createUseStyles({
     alignItems: "center",
     padding: 16,
     gap: 16,
-    justifyContent: "flex-start",
+    justifyContent: "flex-start"
+  },
+  noFriends: {
+    height: "calc(var(--vh, 1vh) * 64 + 60px)",
+    display: "flex",
+    flexDirection: 'column',
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 32
   },
   friendRequests: {
     padding: 16,
@@ -26,14 +34,14 @@ const useStyles = createUseStyles({
     border: "1px solid #dedede",
     margin: 16,
     borderRadius: 16,
-    width: "calc(100% - 32px)",
+    width: "calc(100% - 32px)"
   },
   friends: {
     width: "100%",
     display: "flex",
-    flexDirection: 'column',
+    flexDirection: "column",
     gap: 4
-  },
+  }
 });
 
 export interface LeaderBoardFriend {
@@ -56,7 +64,7 @@ export const Leaderboard = () => {
 
   if (friends.length === 0 && friendRequests.length === 0) {
     return (
-      <div className={classes.root}>
+      <div className={classes.noFriends}>
         {showAddModal ? (
           <AddFriend close={() => setShowAddModal(false)} />
         ) : (
@@ -125,8 +133,8 @@ export const Leaderboard = () => {
                 ...friend,
                 ...{
                   active: openFriend === friend.id,
-                  setActive: setOpenFriend,
-                },
+                  setActive: setOpenFriend
+                }
               }}
             />
           );

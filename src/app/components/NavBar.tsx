@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { createUseStyles } from "react-jss";
 import { User } from "../../lib/interfaces";
 import { Button } from "./Button";
 import { Tab } from "../App";
-import { BackIcon } from "./icons/BackIcon";
+import { DataContext } from "../storage/DataProvider";
+import { IconButton } from "./IconButton";
 
 const useStyles = createUseStyles({
   infoBar: {
@@ -17,7 +18,7 @@ const useStyles = createUseStyles({
   },
   title: {
     lineHeight: "24px",
-    paddingLeft: 16
+    paddingLeft: 16,
   },
   group: {
     display: "flex",
@@ -59,7 +60,7 @@ const useStyles = createUseStyles({
     background: "#fff",
   },
   logoutButton: {
-    width: 150
+    width: 150,
   },
   dropdownItem: {
     display: "flex",
@@ -78,7 +79,7 @@ interface LoggedInNavBarProps {
   tab: Tab;
   setTab: (tab: Tab) => void;
   user: User;
-  logout: () => Promise<void>
+  logout: () => Promise<void>;
 }
 
 interface LoggedOutNavBarProps {
@@ -95,6 +96,7 @@ export const NavBar = (props: LoggedInNavBarProps | LoggedOutNavBarProps) => {
   const classes = useStyles();
 
   const [showLogout, setShowLogout] = useState<boolean>(false);
+  const { friendRequests, friends } = useContext(DataContext);
 
   const content = () => {
     if (isLoggedOutNavBarProps(props)) {
@@ -121,13 +123,7 @@ export const NavBar = (props: LoggedInNavBarProps | LoggedOutNavBarProps) => {
           <>
             <div className={classes.title}>{tab}</div>
             <div>
-              <Button
-                buttonType={"square"}
-                className={classes.backButton}
-                onClick={() => setTab("Home")}
-              >
-                <BackIcon />
-              </Button>
+              <IconButton icon={"back"} onClick={() => setTab("Home")} />
             </div>
           </>
         );
@@ -171,15 +167,20 @@ export const NavBar = (props: LoggedInNavBarProps | LoggedOutNavBarProps) => {
               <></>
             )}
             <div className={classes.group}>
-              <Button buttonType={"square"} onClick={() => setTab("Hints")}>
-                Hints
-              </Button>
-              <Button
-                buttonType={"square"}
+              <IconButton icon={"hints"} onClick={() => setTab("Hints")} />
+              <IconButton
                 onClick={() => setTab("Leaderboard")}
-              >
-                Leaderboard
-              </Button>
+                icon={"leaderboard"}
+                badge={
+                  /* Show number of friend requests if there are any, otherwise, if there are no friends show a "!" so
+                  the user knows to click there to add friends */
+                  friendRequests?.length > 0
+                    ? friendRequests.length.toString()
+                    : friends?.length > 0
+                    ? undefined
+                    : "!"
+                }
+              />
             </div>
           </>
         );

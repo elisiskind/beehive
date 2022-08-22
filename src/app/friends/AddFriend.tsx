@@ -1,6 +1,6 @@
 import { createUseStyles } from "react-jss";
 import { Button } from "../components/Button";
-import { useContext, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useContext, useEffect, useRef, useState } from "react";
 import { DataContext } from "../storage/DataProvider";
 import { isExpired } from "../../lib/utils";
 import { Spinner } from "../components/spinner";
@@ -53,6 +53,13 @@ const useStyles = createUseStyles({
 interface AddFriendProps {
   close: () => void;
 }
+
+const extractCode = (e: ChangeEvent<HTMLInputElement>): string => {
+  return e.target.value
+    .replace(/[^a-zA-Z0-9]/gi, "")
+    .substring(0, 6)
+    .toUpperCase();
+};
 
 export const AddFriend = ({ close }: AddFriendProps) => {
   const classes = useStyles();
@@ -117,11 +124,20 @@ export const AddFriend = ({ close }: AddFriendProps) => {
             <div className={classes.row}>
               <input
                 className={classes.input}
-                onChange={(e) =>
-                  setCodeToAdd(e.target.value.substring(0, 6).toUpperCase())
-                }
+                onChange={(e) => {
+                  setCodeToAdd(extractCode(e));
+                  e.stopPropagation();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "backspace") {
+                    setCodeToAdd(
+                      codeToAdd?.substring(0, codeToAdd?.length - 1) ?? ""
+                    );
+                  }
+                  e.stopPropagation();
+                }}
                 value={codeToAdd ?? ""}
-                onClick={() => {
+                onFocus={() => {
                   setError(null);
                   setMessage(null);
                 }}

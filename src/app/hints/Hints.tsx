@@ -4,26 +4,27 @@ import { createUseStyles } from "react-jss";
 
 const useStyles = createUseStyles({
   root: {
+    paddingTop: 24,
     display: "flex",
     flexDirection: "column",
     fontFamily: 'nyt-imperial, georgia, "times new roman", times, serif',
     gap: 24,
-    alignItems: 'center'
+    alignItems: "center",
   },
   section: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: "center"
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
   },
   title: {
     fontWeight: 800,
-    marginTop: 16
+    marginTop: 16,
   },
   link: {
-    fontStyle: 'italic',
+    fontStyle: "italic",
     cursor: "pointer",
-    color: "#326891"
-  }
+    color: "#326891",
+  },
 });
 
 export const Hints = () => {
@@ -32,11 +33,11 @@ export const Hints = () => {
   return (
     <div className={classes.root}>
       <div className={classes.section}>
-        <h2  className={classes.title}>Grid</h2>
+        <h2 className={classes.title}>Grid</h2>
         <Grid />
       </div>
       <div className={classes.section}>
-        <h2  className={classes.title}>Two Letter List</h2>
+        <h2 className={classes.title}>Two Letter List</h2>
         <TwoLetterList />
       </div>
       <div>
@@ -44,6 +45,7 @@ export const Hints = () => {
           href={
             "https://www.nytimes.com/2021/07/26/crosswords/spelling-bee-forum-introduction.html"
           }
+          target="_blank"
           className={classes.link}
         >
           How to read these hints

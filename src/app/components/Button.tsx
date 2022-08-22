@@ -5,6 +5,7 @@ interface ButtonProps {
   onClick: () => void;
   size?: "small" | "large" | "medium";
   className?: string;
+  badge?: string;
   disabled?: boolean;
   buttonType?: "round" | "square";
 }
@@ -16,6 +17,7 @@ interface StyleProps {
 
 const useStyles = createUseStyles({
   rootRound: {
+    position: "relative",
     outline: "none",
     cursor: ({ disabled }: StyleProps) => (disabled ? "default" : "pointer"),
     padding: 15,
@@ -36,10 +38,11 @@ const useStyles = createUseStyles({
     },
   },
   rootSquare: {
+    position: "relative",
     fontFamily: "'nyt-franklin'",
     fontSize: "1.125em",
     lineHeight: "45px",
-    height: '56px',
+    height: "56px",
     padding: "6px 13px 4px",
     color: "#000",
     backgroundColor: "white",
@@ -51,12 +54,27 @@ const useStyles = createUseStyles({
     flexWrap: "nowrap",
     "&:hover": { cursor: "pointer", backgroundColor: "#f4f4f4", color: "#000" },
   },
+  badge: {
+    position: "absolute",
+    top: 32,
+    right: 6,
+    width: 16,
+    height: 16,
+    background: 'rgb(247, 218, 33)',
+    color: "black",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
+    fontSize: 10
+  },
 });
 
 export const Button: FunctionComponent<ButtonProps> = ({
   children,
   onClick,
   className,
+  badge,
   disabled = false,
   size = "small",
   buttonType = "round",
@@ -77,6 +95,7 @@ export const Button: FunctionComponent<ButtonProps> = ({
       }}
     >
       {children}
+      {badge && <span className={classes.badge}>{badge}</span>}
     </button>
   );
 };
