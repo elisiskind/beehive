@@ -1,14 +1,6 @@
 import { GameInfo, Guesses } from "../../lib/interfaces";
-import React, {
-  createContext,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-import { isExpired } from "../../lib/utils";
+import React, { createContext, useCallback, useEffect, useState } from "react";
 import { Logging } from "../../lib/logging";
-import { Spinner } from "../components/spinner";
 
 interface GameInfoData {
   error: boolean;
@@ -27,7 +19,7 @@ const extractGameInfo = (): GameInfo => {
     .filter((content) => content.startsWith(prefix))
     .map((content) => content.substring(prefix.length))
     .map((content) => JSON.parse(content))
-    .map((gameData) => gameData.today)[0];
+    .map(({ today }) => today)[0];
   if (gameInfo) {
     return gameInfo;
   } else {
@@ -35,59 +27,25 @@ const extractGameInfo = (): GameInfo => {
   }
 };
 
-const extractGuesses = async (): Promise<Guesses | null> => {
-  const parseGuesses = (): Guesses | null => {
-    const guessesJson = localStorage.getItem("sb-today");
-    if (guessesJson) {
-      return JSON.parse(guessesJson);
-    } else {
-      return null;
-    }
-  };
-
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        resolve(parseGuesses());
-      } catch (e) {
-        Logging.error("Error extracting guesses: ", e);
-        reject(e);
-      }
-    }, 50);
-  });
-};
-
-const listenForUserInput = (setGuesses: (guesses: Guesses | null) => void) => {
-  const submitCallback = async () => {
-    setGuesses(await extractGuesses());
-  };
-  const keyPressCallback = async (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      setGuesses(await extractGuesses());
-    }
-  };
-
-  window.addEventListener("keyup", keyPressCallback);
-  const submitButton = document.getElementsByClassName(
-    "hive-action__submit"
-  )[0];
-  submitButton?.addEventListener("click", submitCallback);
-
-  return () => {
-    Logging.info('Removing guesses listeners');
-    submitButton.removeEventListener("click", submitCallback);
-    window.removeEventListener("keyup", keyPressCallback);
-  };
-};
+const extractGuesses = (): Guesses => {
+  const id = extractGameInfo().id;
+  try {
+    const guessList = Array.from(document.getElementsByClassName("sb-wordlist-items-pag")[0].children);
+    const words = guessList.map(guessLi => (guessLi.children[0] as HTMLDivElement).innerText).map(guess => guess.toLowerCase());
+    return { words, id };
+  } catch (e) {
+    console.error("Failed to parse guesses: ", e);
+    return {
+      words: [],
+      id
+    };
+  }
+}
 
 export const GameInfoProvider: React.FC = ({ children }) => {
-  const [guesses, setGuesses] = useState<Guesses | null>(null);
-  const [gameInfo, setGameInfo] = useState<GameInfo | null>(null);
+  const [guesses, setGuesses] = useState(extractGuesses());
+  const [gameInfo, setGameInfo] = useState(extractGameInfo());
   const [error, setError] = useState<boolean>(false);
-
-  const unsubscribeGuessesRef = useRef<() => void>(() => {
-    Logging.debug("no unsubscribe defined");
-  });
 
   const extractAndSetGameInfo = useCallback(() => {
     try {
@@ -101,53 +59,31 @@ export const GameInfoProvider: React.FC = ({ children }) => {
   }, []);
 
   const saveGuesses = useCallback(
-    (newGuesses: Guesses | null) => {
-      if (!guesses ||
-      guesses.id !== newGuesses?.id ||
-      !(
-        guesses.words.length === newGuesses.words.length &&
-        guesses.words.every((word) => newGuesses.words.includes(word))
-      )) {
+    (newGuesses: Guesses) => {
+      if (guesses.id !== newGuesses?.id ||
+        !(
+          guesses.words.length === newGuesses.words.length &&
+          guesses.words.every((word) => newGuesses.words.includes(word))
+        )) {
         setGuesses(newGuesses);
       }
     },
-    [unsubscribeGuessesRef, guesses]
+    [guesses]
   );
 
   useEffect(() => {
-    const unsub = listenForUserInput(saveGuesses);
-    unsubscribeGuessesRef.current = unsub;
-    return unsub;
+    const targetNode = document.getElementsByClassName("sb-wordlist-items-pag")[0];
+    const config = { attributes: false, childList: true, subtree: true };
+    const callback = () => saveGuesses(extractGuesses());
+    const observer = new MutationObserver(callback);
+    observer.observe(targetNode, config);
+    return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    extractGuesses().then(saveGuesses);
-    if (!gameInfo || isExpired(gameInfo)) {
-      Logging.info("Extracting game info.");
-      extractAndSetGameInfo();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!gameInfo || isExpired(gameInfo)) {
-      Logging.info("Extracting game info.");
-      extractAndSetGameInfo();
-    }
-  }, []);
-
-  if (!gameInfo) {
-    return <Spinner/>
-  }
-
-  const todaysGuesses =
-    {
-      id: gameInfo.id,
-      words: guesses && guesses.id === gameInfo.id ? guesses.words : []
-    }
 
   return (
     <GameInfoContext.Provider
-      value={{ gameInfo, error, guesses: todaysGuesses, refreshGameInfo: extractAndSetGameInfo }}
+      value={{ gameInfo, error, guesses, refreshGameInfo: extractAndSetGameInfo }}
     >
       {children}
     </GameInfoContext.Provider>
